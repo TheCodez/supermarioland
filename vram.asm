@@ -1,0 +1,5 @@
+vChars0 EQU $8000
+vChars1 EQU $8800
+vChars2 EQU $9000
+vBGMap0 EQU $9800
+vBGMap1 EQU $9C00
