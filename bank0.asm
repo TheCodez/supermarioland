@@ -1,5 +1,6 @@
 INCLUDE "charmap.asm"
 INCLUDE "gbhw.asm"
+INCLUDE "vram.asm"
 INCLUDE "wram.asm"
 INCLUDE "hram.asm"
 INCLUDE "macros.asm"
@@ -468,7 +469,7 @@ GameState_0E::
 	ld bc, $0500
 	call CopyData	; loads tiles for the menu
 	ld hl, $7E1A
-	ld de, $8800
+	ld de, vChars1
 	ld bc, $0170
 	call CopyData	; and more tiles
 	ld hl, $4862
@@ -481,11 +482,11 @@ GameState_0E::
 	ld bc, $0010
 	call CopyData	; mushroom sprite (or mario head)
 	ld hl, $5032
-	ld de, $9000
+	ld de, vChars2
 	ld bc, $02C0
 	call CopyData	; font, coins
 	ld hl, $5032
-	ld de, $8000
+	ld de, vChars0
 	ld bc, $02A0
 	call CopyData	; same, but to the other tile data bank
 	call Call_5CF
@@ -499,7 +500,7 @@ GameState_0E::
 	pop af
 	ldh [hLevelIndex], a
 	ld a, $3C
-	ld hl, $9800		; tile map
+	ld hl, vBGMap0		; tile map
 	call FillStartMenuTopRow	; usually hidden by the HUD
 	ld hl, $9804
 	ld [hl], $94
@@ -806,7 +807,7 @@ GameState_11::	; 576
 .jmp_58B
 	call Call_5E7	; todo
 	call Call_5CF
-	ld hl, $9C00
+	ld hl, vBGMap1
 	ld b, $5F
 	ld a, " "
 .loop
@@ -869,11 +870,11 @@ CopyData::	; 05DE
 ; prepare tiles
 Call_5E7::	; the three upper banks have tiles at the same location?
 	ld hl, $5032
-	ld de, $9000
+	ld de, vChars2
 	ld bc, $0800
 	call CopyData
 	ld hl, $4032
-	ld de, $8000
+	ld de, vChars0
 	ld bc, $1000
 	call CopyData
 	ld hl, $5603
@@ -890,7 +891,7 @@ Call_5E7::	; the three upper banks have tiles at the same location?
 
 PrepareHUD::
 	ld hl, DMARoutineEnd	; TODO HUD
-	ld de, $9800
+	ld de, vBGMap0
 	ld b, $02
 .loop
 	ldi a, [hl]
@@ -989,7 +990,7 @@ GameState_02::
 	and a, $0F
 	inc l
 	ld [hl], a
-	ld hl, $9C00
+	ld hl, vBGMap1
 	ld de, .text_79A
 	ld b, $09
 .loop
@@ -2578,7 +2579,7 @@ GameState_29:: ; 1116
 	xor a
 	ldh [rLCDC], a
 	ldh [$FFF9], a
-	ld hl, $9C00
+	ld hl, vBGMap1
 	ld bc, $0100
 	call EraseTileMap
 	call Call_807.drawLevel
@@ -4289,7 +4290,7 @@ UpdateLives::
 	jr .displayUpdatedLives
 
 GameState_39::	; 1C7C
-	ld hl, $9C00			; todo window tile map?
+	ld hl, vBGMap1			; todo window tile map?
 	ld de, .label_1CD7
 	ld b, $11
 .loop
@@ -4347,7 +4348,7 @@ GameState_3A:: ; 1CE8
 
 ; prepare time up
 GameState_3B:: ; 1CF0
-	ld hl, $9C00			; tile map for window
+	ld hl, vBGMap1			; tile map for window
 	ld de, .text_1D14
 	ld c, 9
 .loop
@@ -7167,7 +7168,7 @@ GameState_12:: ; 3D97
 	ldi [hl], a
 	dec b
 	jr nz, .oamloop
-	ld hl, $9800
+	ld hl, vBGMap0
 	ld b, $FF
 	ld c, $03
 	ld a, " "
@@ -7197,7 +7198,7 @@ GameState_12:: ; 3D97
 GameState_13:: ; 3DD7
 	xor a
 	ldh [rLCDC], a
-	ld hl, $9800
+	ld hl, vBGMap0
 	ld a, $F5		; Top Left corner
 	ldi [hl], a
 	ld b, $12		; todo screen width or smth?
@@ -7385,7 +7386,7 @@ _LookupTile:: ; 3EE6
 	srl a				; Divide by 8, the number of pixels per tile
 	ld de, $0000
 	ld e, a
-	ld hl, $9800		; Start of background tile map
+	ld hl, vBGMap0		; Start of background tile map
 	ld b, $20			; todo screen width
 .loopY
 	add hl, de
