@@ -52,8 +52,11 @@ wWinCount:: ; C0E1
 
 ds $C201 - $C0E2
 
-wMarioPos::  ; C201
-	ds 2
+wMarioPosY::  ; C201
+	ds 1
+
+wMarioPosX::  ; C202
+	ds 1
 
 ds $D002 - $C203
 
