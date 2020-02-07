@@ -50,7 +50,12 @@ ds 1		; C0F0
 wWinCount:: ; C0E1
 	db
 
-ds $D002 - $C0E2
+ds $C201 - $C0E2
+
+wMarioPos::  ; C201
+	ds 2
+
+ds $D002 - $C203
 
 wCurrentCommand:: ; D002
 	db

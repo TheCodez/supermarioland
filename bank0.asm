@@ -1182,7 +1182,7 @@ EntityCollision:: ; 84E
 	inc l
 	ld a, [hl]			; D1xC health?
 	ldh [$FF9B], a
-	ld a, [$C201]		; Mario Y pos
+	ld a, [wMarioPos]		; Mario Y pos
 	ld b, a
 	ldh a, [hSuperStatus]
 	cp a, $02
@@ -1196,10 +1196,10 @@ EntityCollision:: ; 84E
 .jmp_88E
 	ld a, b
 	ldh [$FFA0], a		; bounding box top?
-	ld a, [$C201]     ; Mario Y pos
+	ld a, [wMarioPos]     ; Mario Y pos
 	add a, $6
 	ldh [$FFA1], a		; bounding box bottom?
-	ld a, [$C202]		; Mario X pos
+	ld a, [wMarioPos + 1]		; Mario X pos
 	ld b, a
 	sub a, $03
 	ldh [$FFA2], a		; bounding box left?
@@ -1226,13 +1226,13 @@ EntityCollision:: ; 84E
 	jp .jmp_94B
 
 .jmp_8C7
-	ld a, [$C202]		; mario x pos
+	ld a, [wMarioPos + 1]		; mario x pos
 	add a, $06
 	ld c, [hl]
 	dec l
 	sub c
 	jr c, .jmp_94B
-	ld a, [$C202]
+	ld a, [wMarioPos + 1]
 	sub a, $06
 	sub b
 	jr nc, .jmp_94B
@@ -1240,7 +1240,7 @@ EntityCollision:: ; 84E
 	dec b
 	dec b
 	dec b
-	ld a, [$C201]
+	ld a, [wMarioPos]
 	sub b
 	jr nc, .jmp_94B
 	dec l
@@ -1270,10 +1270,10 @@ EntityCollision:: ; 84E
 .enemyKilled
 	ld a, $03
 	ld [$DFE0], a		; stomp sound
-	ld a, [$C202]		; X pos
+	ld a, [wMarioPos + 1]		; X pos
 	add a, -$4
 	ldh [hFloatyX], a	; todo comment
-	ld a, [$C201]
+	ld a, [wMarioPos]
 	sub a, $10
 	ldh [hFloatyY], a
 	ldh a, [$FF9E]
@@ -1364,10 +1364,10 @@ EntityCollision:: ; 84E
 	ld a, $10
 	ldh [hFloatyControl], a
 .positionFloaty
-	ld a, [$C202]
+	ld a, [wMarioPos + 1]
 	add a, -$4
 	ldh [hFloatyX], a		; todo comment
-	ld a, [$C201]
+	ld a, [wMarioPos]
 	sub a, $10
 	ldh [hFloatyY], a			; Y position of floaty number
 	dec l
@@ -1427,7 +1427,7 @@ KillMario:: ; 9F1
 	ld [$DFE8], a			; sound effect
 	ld a, $80
 	ld [$C200], a
-	ld a, [$C201]			; Mario Y pos
+	ld a, [wMarioPos]			; Mario Y pos
 	ld [$C0DD], a			; death Y pos?
 	ret
 
@@ -1492,7 +1492,7 @@ Call_A2D:: ; A2D
 	inc l
 	inc l
 	ld b, [hl]			; D1x2 Y pos
-	ld a, [$C201]		; player Y pos
+	ld a, [wMarioPos]		; player Y pos
 	sub b				; Y coordinates are inverted
 	jr c, .noHit		; enemy needs to be above player
 	ld b, a
@@ -1513,11 +1513,11 @@ Call_A2D:: ; A2D
 	jr nz, .loopR
 	ld c, a				; C contains right bound of enemy
 	ld b, [hl]			; B contains left bound of enemy
-	ld a, [$C202]		; Mario X pos
+	ld a, [wMarioPos + 1]		; Mario X pos
 	sub a, $06			; Mario is 12 pixels wide
 	sub c
 	jr nc, .noHit		; left bound has to be smaller than right bound of enemy
-	ld a, [$C202]
+	ld a, [wMarioPos + 1]
 	add a, $06
 	sub b
 	jr c, .noHit
@@ -1530,10 +1530,10 @@ Call_A2D:: ; A2D
 	pop de
 	and a
 	jr z, .noHit
-	ld a, [$C202]		; X pos
+	ld a, [wMarioPos + 1]		; X pos
 	add a, $FC			; or -4
 	ldh [hFloatyX], a
-	ld a, [$C201]		; Y pos
+	ld a, [wMarioPos]		; Y pos
 	sub a, $10
 	ldh [hFloatyY], a
 	ldh a, [$FF9E]
@@ -1640,7 +1640,7 @@ Call_AEA:: ; AEA
 .break
 	ld c, a				; enemy top bound
 	ldh [$FFA0], a
-	ld a, [$C201]		; player y pos
+	ld a, [wMarioPos]		; player y pos
 	add a, $06			; todo is mario 6 units tall or so?
 	ld b, a				; mario bottom bound
 	ld a, c
@@ -1648,7 +1648,7 @@ Call_AEA:: ; AEA
 	cp a, $07			; mario has to be less than 8 pixels above the enemy
 	jr nc, .notOnTop
 	inc l
-	ld a, [$C202]		; mario x pos
+	ld a, [wMarioPos + 1]		; mario x pos
 	ld b, a
 	ld a, [hl]			; enemy x pos
 	sub b
@@ -1675,7 +1675,7 @@ Call_AEA:: ; AEA
 	dec b
 	jr nz, .loopR		; find right bound
 	ld b, a
-	ld a, [$C202]		; mario x pos
+	ld a, [wMarioPos + 1]		; mario x pos
 	sub b				; 
 	jr c, .jmp_B5D
 	cp a, $03
@@ -1684,7 +1684,7 @@ Call_AEA:: ; AEA
 	dec l
 	ldh a, [$FFA0]		; enemy top Y bound
 	sub a, $0A
-	ld [$C201], a		; position Mario 10 units above
+	ld [wMarioPos], a		; position Mario 10 units above
 	push hl
 	dec l
 	dec l				; D1x0
@@ -1719,11 +1719,11 @@ GameState_03:: ; B8D
 	ld hl, wOAMBuffer + $0C	; Mario's 4 objects todo
 	ld a, [$C0DD]		; death Y position?
 	ld c, a
-	sub a, $08
+	sub a, 8
 	ld d, a
 	ld [hl], a			; Y position
 	inc l
-	ld a, [$C202]		; Mario's screen x position
+	ld a, [wMarioPos + 1]		; Mario's screen x position
 	add a, $F8			; or subtract 8
 	ld b, a
 	ldi [hl], a			; X position
@@ -1742,12 +1742,12 @@ GameState_03:: ; B8D
 	ld [hl], d			; Y position
 	inc l
 	ld a, b
-	add a, $08
+	add a, 8
 	ld b, a
 	ldi [hl], a			; X position
 	ld [hl], $0F		; top right dying mario object (mirrored)
 	inc l
-	ld [hl], $20		; OAM X flip
+	ld [hl], 1 << OAM_X_FLIP ; $20		; OAM X flip
 	inc l
 	ld [hl], c			; Y
 	inc l
@@ -1755,7 +1755,7 @@ GameState_03:: ; B8D
 	inc l
 	ld [hl], $1F		; bottom dying object
 	inc l
-	ld [hl], $20		; OAM X flip
+	ld [hl], 1 << OAM_X_FLIP ; $20		; OAM X flip
 	ld a, $04			; dying animation
 	ldh [hGameState], a
 	xor a
@@ -1900,7 +1900,7 @@ GameState_06:: ; CCB
 	cp a, 3			; boss level
 	ld a, $1C		; smth to do with the gate to Daisy
 	jr z, .bossLevel
-	ld a, [$C201]	; mario on screen Y position
+	ld a, [wMarioPos]	; mario on screen Y position
 	cp a, $60
 	jr c, .bonusGame
 	cp a, $A0
@@ -2200,7 +2200,7 @@ GameState_1F:: ; E96
 GameState_28::
 GameState_20:: ; EA9
 	call .walkRight
-	ld a, [$C202]		; mario on screen X
+	ld a, [wMarioPos + 1]		; mario on screen X
 	cp a, $C0
 	ret c
 	ld a, $20
@@ -2237,7 +2237,7 @@ GameState_21:: ; ECD
 	ret
 
 .prepareMarioAndDaisy::
-	ld hl, $C201		; mario y position
+	ld hl, wMarioPos		; mario y position
 	ld [hl], $7E
 	inc l
 	ld [hl], $B0		; mario x
@@ -2274,7 +2274,7 @@ GameState_22:: ; F12
 	ld hl, hScrollX
 	inc [hl]
 	call Call_2198		; loads in columns?
-	ld hl, $C202		; mario x pos
+	ld hl, wMarioPos + 1		; mario x pos
 	dec [hl]
 	ld hl, $C212		; fake daisy x pos
 	dec [hl]
@@ -2294,7 +2294,7 @@ GameState_23:: ; F33
 	ldh [hJoyHeld], a
 	call Call_17BC
 	call Call_16F5
-	ld a, [$C202]
+	ld a, [wMarioPos + 1]
 	cp a, $4C			; almost middle of screen
 	ret c
 	ld a, [$C203]
@@ -2583,7 +2583,7 @@ GameState_29:: ; 1116
 	call EraseTileMap
 	call DrawInitialScreen.drawLevel
 	call GameState_21.prepareMarioAndDaisy
-	ld hl, $C202		; mario X position
+	ld hl, wMarioPos + 1		; mario X position
 	ld [hl], $38
 	inc l
 	ld [hl], $10		; Super Mario
@@ -2595,7 +2595,7 @@ GameState_29:: ; 1116
 	ld [wScrollY], a
 	ldh [$FFFB], a
 	ld hl, wOAMBuffer
-	ld b, 3*4			; 3 projectiles?
+	ld b, 3 * 4			; 3 projectiles?
 .loop
 	ldi [hl], a
 	dec b
@@ -2819,7 +2819,7 @@ GameState_30:: ; 12C2
 	ret nz
 	ld hl, $C240
 	ld [hl], $FF		; make invisible. Why not do this before?
-	ld hl, $C201		; Y pos
+	ld hl, wMarioPos		; Y pos
 	dec [hl]			; take off
 	ldi a, [hl]
 	cp a, $58
@@ -2861,7 +2861,7 @@ GameState_31:: ; 12F1
 	ret
 
 .animateSpaceship
-	ld hl, $C202		; X pos
+	ld hl, wMarioPos + 1		; X pos
 	call GameState_30.switchSpaceshipAnimation
 	call Call_1736		; animate entities
 	ret
@@ -3109,7 +3109,7 @@ GameState_36:: ; 1466
 ; spaceship flies off, prepare "THE END"
 GameState_37::
 	call AnimateSpaceshipAndClouds
-	ld hl, $C202		; X position
+	ld hl, wMarioPos + 1		; X position
 	inc [hl]
 	ld a, [hl]
 	cp a, $D0			; out of sight??
@@ -3253,7 +3253,7 @@ Text_1557
 
 ; go down pipe
 GameState_09:: ; 161B
-	ld hl, $C201		; Mario Y position
+	ld hl, wMarioPos		; Mario Y position
 	ldh a, [$FFF8]		; Y position of block under pipe? Y target at least
 	cp [hl]
 	jr z, .toUnderground
@@ -3278,7 +3278,7 @@ GameState_0A:: ; 162F
 	ldh [hScreenIndex], a
 	call DrawInitialScreen		; draws the first screen of the "level"
 	call InitEnemySlots
-	ld hl, $C201		; Mario Y position
+	ld hl, wMarioPos		; Mario Y position
 	ld [hl], $20		; up high
 	inc l				; Mario X position
 	ld [hl], $1D		; a little to the left
@@ -3312,7 +3312,7 @@ GameState_0B:: ; 166C
 	ldh a, [hFrameCounter]
 	and a, $01			; slow down mario by half
 	ret z
-	ld hl, $C202		; screen X position
+	ld hl, wMarioPos + 1		; screen X position
 	ldh a, [$FFF8]		; goal X value?
 	cp [hl]
 	jr c, .toOverworld		; warp out? todo
@@ -3342,7 +3342,7 @@ GameState_0B:: ; 166C
 	pop de
 	ld a, $80
 	ld [$C204], a
-	ld hl, $C201		; mario Y
+	ld hl, wMarioPos		; mario Y
 	ld a, d
 	ldi [hl], a
 	sub a, $12			; target position is 12 units above spawn? right on top
@@ -3379,7 +3379,7 @@ GameState_0C:: ; 16DA
 	ldh a, [hFrameCounter]
 	and a, $01				; slow down animation by 2
 	ret z
-	ld hl, $C201			; y position
+	ld hl, wMarioPos			; y position
 	ldh a, [$FFF8]			; y target?
 	cp [hl]
 	jr z, .outOfPipe
@@ -3486,7 +3486,7 @@ Jmp_1765:: ; 1765
 	push de
 	call Call_3F13			; called when hitting a bouncing block
 	pop de
-	ld hl, $C201			; Y pos
+	ld hl, wMarioPos			; Y pos
 	ldi a, [hl]
 	add a, $10
 	ld [de], a
@@ -3515,7 +3515,7 @@ Call_17BC:: ; 17BC
 	ld a, [hl]
 	cp a, $01
 	ret z
-	ld hl, $C201			; Y pos
+	ld hl, wMarioPos			; Y pos
 	ldi a, [hl]
 	add a, $0B
 	ldh [$FFAD], a
@@ -3552,7 +3552,7 @@ Call_17BC:: ; 17BC
 	ld a, [hl]
 	cp a, $02
 	ret z					; return if descending
-	ld hl, $C201			; Y pos
+	ld hl, wMarioPos			; Y pos
 	inc [hl]
 	inc [hl]
 	inc [hl]				; falling without having jumped
@@ -3608,7 +3608,7 @@ Call_17BC:: ; 17BC
 	jr .jmp_1801
 
 Jmp_185D
-	ld hl, $C201
+	ld hl, wMarioPos
 	ld a, [hl]
 	dec a
 	dec a
@@ -3666,7 +3666,7 @@ Jmp_185D
 	ret nz
 	ld a, $05
 	ld [$DFE0], a			; coin sound effect
-	ld a, [$C201]			; Y pos
+	ld a, [wMarioPos]			; Y pos
 	sub a, $10
 	ldh [hFloatyY], a
 	ld a, $C0
@@ -3677,13 +3677,13 @@ Jmp_185D
 	jr nz, .jmp_1923
 .jmp_18C0
 	ld a, $80
-	ld [wOAMBuffer + 4*$B + 2], a
+	ld [wOAMBuffer + 4 * $B + 2], a
 	jr .jmp_1937
 
 .jmp_18C7
 	ldh [$FFA0], a
 	ld a, $80
-	ld [wOAMBuffer + 4*$B + 2], a
+	ld [wOAMBuffer + 4 * $B + 2], a
 	ld a, $07
 	ld [$DFE0], a			; bump sound effect
 	push hl
@@ -3707,8 +3707,8 @@ Jmp_185D
 	ld a, [de]
 	ldh [$FFA0], a
 	call Call_3F13
-	ld hl, wOAMBuffer + 4*$B
-	ld a, [$C201]
+	ld hl, wOAMBuffer + 4 * $B
+	ld a, [wMarioPos]
 	sub a, $0B
 	ldi [hl], a				; Y pos of sprite on top of mario?
 	ldh [$FFC2], a			; enemy Y pos buffer?
@@ -3763,7 +3763,7 @@ Jmp_185D
 	ld [$FFAF], a			; what a mess
 	call Call_3F13
 	ld hl, wOAMBuffer + 4*$B
-	ld a, [$C201]			; y pos
+	ld a, [wMarioPos]			; y pos
 	sub a, $B
 	ldi [hl], a
 	ldh [$FFF1], a
@@ -3796,7 +3796,7 @@ Jmp_185D
 	ld [$DFE0], a
 	ld a, $81
 	ld [$C02E], a
-	ld a, [$C201]			; ypos
+	ld a, [wMarioPos]			; ypos
 	sub a, $10
 	ldh [hFloatyY], a
 	ld a, $C0
@@ -3807,7 +3807,7 @@ Jmp_185D
 	ld a, [$C207]			; jump status
 	cp a, $01				; ascending
 	ret nz
-	ld hl, $C201
+	ld hl, wMarioPos
 	ldi a, [hl]
 	add a, -$3				; look for collision on mario's head
 	ldh [$FFAD], a
@@ -3877,11 +3877,11 @@ Jmp_185D
 	push hl
 	ld [hl], $00
 	inc l					; C2x1 Y
-	ld a, [$C201]
+	ld a, [wMarioPos]
 	add a, -$D
 	ld [hl], a
 	inc l					; C2x2 X
-	ld a, [$C202]
+	ld a, [wMarioPos + 1]
 	add a, $2
 	ld [hl], a
 	inc l					; C2x3
@@ -4004,7 +4004,7 @@ Call_1AAD:: ; 1AAD
 	jr z, .checkSide
 	ld de, $0702			; E = 2, check lower and upper side
 .checkSide
-	ld hl, $C201			; Y pos
+	ld hl, wMarioPos			; Y pos
 	ldi a, [hl] 			; The Y pos is about 10 px above Mario's feet
 	add d					; so look about 7px lower first iteration?
 	ldh [$FFAD], a
@@ -4077,7 +4077,7 @@ Call_1AAD:: ; 1AAD
 	ldh [hGameState], a
 	ld a, $80
 	ld [$C204], a		; mario in control?
-	ld hl, $C202		; X pos
+	ld hl, wMarioPos + 1		; X pos
 	ldd a, [hl]
 	add a, $18
 	ldh [$FFF8], a		; goal X?
@@ -4502,7 +4502,7 @@ Call_1D26::
 	inc l				; $C20D left right changing dir
 	ld [hl], $10		; going right
 .jmp_1DE4
-	ld hl, $C202		; on screen X pos
+	ld hl, wMarioPos + 1		; on screen X pos
 	ldh a, [hIsUnderground]
 	and a
 	jr nz, .jmp_1E21
@@ -4582,7 +4582,7 @@ Call_1D26::
 	call Call_1AAD
 	and a
 	ret nz
-	ld hl, $C202		; mario x pos
+	ld hl, wMarioPos + 1		; mario x pos
 	ld a, [hl]
 	cp a, $0F
 	jr c, .jmp_1E9F		; jump if X < 0x0F
@@ -5985,7 +5985,7 @@ Call_2648:: ; 2648
 	ldh a, [$FFC5]
 	and a, $FD			; unset bit 1
 	ld b, a
-	ld a, [$C201]		; Y pos
+	ld a, [wMarioPos]		; Y pos
 	ld c, a
 	ldh a, [$FFC2]		; enemy Y pos
 	sub c
@@ -5998,7 +5998,7 @@ Call_2648:: ; 2648
 	ld a, [wCommandArgument]
 	bit 6, a			; Same but for X
 	jr z, .checkBits2And3
-	ld a, [$C202]		; Mario X
+	ld a, [wMarioPos + 1]		; Mario X
 	ld c, a
 	ldh a, [$FFC3]		; Enemy X
 	ld b, a
@@ -6115,7 +6115,7 @@ Call_2648:: ; 2648
 .checkF6
 	cp a, $F6			; F6 - Halt until Mario is close
 	jr nz, .checkF7
-	ld a, [$C202]		; Mario X
+	ld a, [wMarioPos + 1]		; Mario X
 	ld b, a
 	ldh a, [$FFC3]		; enemy X
 	sub b
@@ -6166,7 +6166,7 @@ Call_2648:: ; 2648
 	jr nz, .checkFC
 	ld a, [wCommandArgument]
 	ld c, a
-	ld a, [$C202]
+	ld a, [wMarioPos + 1]
 	ld b, a
 	ldh a, [$FFC3]
 	sub b
@@ -6240,13 +6240,13 @@ Call_2648:: ; 2648
 	pop bc
 	and a
 	jr nz, .jmp_28C7
-	ld a, [$C202]		; Y pos
+	ld a, [wMarioPos + 1]		; Y pos
 	sub b
-	ld [$C202], a
+	ld [wMarioPos + 1], a
 	cp a, $0F
 	jr nc, .jmp_28C7
 	ld a, $0F
-	ld [$C202], a
+	ld [wMarioPos + 1], a
 .jmp_28C7
 	ld a, c
 	ld [$C205], a
@@ -6300,20 +6300,20 @@ Call_2648:: ; 2648
 	pop bc
 	and a
 	jr nz, .jmp_2944
-	ld a, [$C202]		; X pos
+	ld a, [wMarioPos + 1]		; X pos
 	add b
-	ld [$C202], a
+	ld [wMarioPos + 1], a
 	cp a, $51
 	jr c, .jmp_2944
 	ld a, [$C0D2]
 	cp a, $07
 	jr nc, .jmp_294A
 .jmp_2931
-	ld a, [$C202]		; X pos
+	ld a, [wMarioPos + 1]		; X pos
 	sub a, $50
 	ld b, a
 	ld a, $50
-	ld [$C202], a
+	ld [wMarioPos + 1], a
 	ldh a, [hScrollX]
 	add b
 	ldh [hScrollX], a
@@ -6371,9 +6371,9 @@ Call_2648:: ; 2648
 	ldh a, [$FFCB]
 	and a
 	jr z, .jmp_29FD
-	ld a, [$C201]
+	ld a, [wMarioPos]
 	sub b				; if carrying Mario, add the displacement to his Y coord
-	ld [$C201], a
+	ld [wMarioPos], a
 	jr .jmp_29FD
 
 .jmp_29A1
@@ -6410,9 +6410,9 @@ Call_2648:: ; 2648
 	ldh a, [$FFCB]		; carrying Mario
 	and a
 	jr z, .jmp_29FD
-	ld a, [$C201]
+	ld a, [wMarioPos]
 	add b				; if carrying, add to Mario's X position
-	ld [$C201], a
+	ld [wMarioPos], a
 	jr .jmp_29FD
 
 .jmp_29E0
