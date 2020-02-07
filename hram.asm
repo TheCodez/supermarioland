@@ -17,6 +17,8 @@ hWorldAndLevel EQU $FFB4
 hSuperballMario EQU $FFB5
 hDMARoutine EQU $FFB6
 
+hMarioState EQU $FFC5
+
 hCurrentChannel EQU $FFD0
 hPanTimer EQU $FFD5
 hPanInterval EQU $FFD6

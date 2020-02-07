@@ -1,4 +1,5 @@
 INCLUDE "charmap.asm"
+INCLUDE "constants.asm"
 INCLUDE "gbhw.asm"
 INCLUDE "vram.asm"
 INCLUDE "wram.asm"
@@ -1271,7 +1272,7 @@ EntityCollision:: ; 84E
 	ld a, $03
 	ld [$DFE0], a		; stomp sound
 	ld a, [wMarioPos + 1]		; X pos
-	add a, -$4
+	add a, -4
 	ldh [hFloatyX], a	; todo comment
 	ld a, [wMarioPos]
 	sub a, $10
@@ -1365,7 +1366,7 @@ EntityCollision:: ; 84E
 	ldh [hFloatyControl], a
 .positionFloaty
 	ld a, [wMarioPos + 1]
-	add a, -$4
+	add a, -4
 	ldh [hFloatyX], a		; todo comment
 	ld a, [wMarioPos]
 	sub a, $10
@@ -1499,7 +1500,7 @@ Call_A2D:: ; A2D
 	ld a, $14
 	sub b
 	jr c, .noHit		; but not too much above the player either
-	cp a, $07			; A contains $14 - (playerY - enemyY) and has to be < 7
+	cp a, 7			; A contains $14 - (playerY - enemyY) and has to be < 7
 	jr nc, .noHit		; meaning playerY - enemyY has to be at least $D
 	inc l
 	ld a, c				; c contains the width + height
@@ -1508,17 +1509,17 @@ Call_A2D:: ; A2D
 	ld c, a
 	ld a, [hl]			; D1x3 X pos, points to left bound of leftmost tile
 .loopR
-	add a, $08			; one tile per width
+	add a, 8			; one tile per width
 	dec c
 	jr nz, .loopR
 	ld c, a				; C contains right bound of enemy
 	ld b, [hl]			; B contains left bound of enemy
 	ld a, [wMarioPos + 1]		; Mario X pos
-	sub a, $06			; Mario is 12 pixels wide
+	sub a, 6			; Mario is 12 pixels wide
 	sub c
 	jr nc, .noHit		; left bound has to be smaller than right bound of enemy
 	ld a, [wMarioPos + 1]
-	add a, $06
+	add a, 6
 	sub b
 	jr c, .noHit
 	dec l
@@ -5633,7 +5634,7 @@ Call_24EF:: ; 24EF
 Jmp_250B
 	xor a
 	ldh [$FFC4], a
-	ldh [$FFC5], a
+	ldh [hMarioState], a
 	ldh [$FFC8], a
 	ldh [$FFC9], a
 	ldh [$FFCB], a
@@ -5763,7 +5764,7 @@ DrawEnemies::; 2568
 	ld b, h
 	ld c, l					; store address in BC
 	ld hl, Data_2FE2
-	ldh a, [$FFC5]
+	ldh a, [hMarioState]
 	and a, %1				; BIT 0, A >_> bug. 1 if facing right?
 	jr nz, .jmp_25DE
 	ld hl, Data_30B4
@@ -5982,7 +5983,7 @@ Call_2648:: ; 2648
 	jr z, .checkBits2And3
 	bit 7, a			; bit 7, direct towards Mario in the Y direction?
 	jr z, .checkBit6
-	ldh a, [$FFC5]
+	ldh a, [hMarioState]
 	and a, $FD			; unset bit 1
 	ld b, a
 	ld a, [wMarioPos]		; Y pos
@@ -5993,7 +5994,7 @@ Call_2648:: ; 2648
 	rlca				; Put carry flag in bit 1
 	and a, $02
 	or b
-	ldh [$FFC5], a		; and OR it into FFC5
+	ldh [hMarioState], a		; and OR it into FFC5
 .checkBit6
 	ld a, [wCommandArgument]
 	bit 6, a			; Same but for X
@@ -6011,10 +6012,10 @@ Call_2648:: ; 2648
 	rla					; Put carry flag in lowest bit of A
 	and a, $01
 	ld b, a
-	ldh a, [$FFC5]
+	ldh a, [hMarioState]
 	and a, $FE
 	or b
-	ldh [$FFC5], a		; And OR it into FFC5
+	ldh [hMarioState], a		; And OR it into FFC5
 .checkBits2And3
 	ld a, [wCommandArgument]
 	and a, $0C			; bits 2 and 3, invert corresponding direction
@@ -6022,9 +6023,9 @@ Call_2648:: ; 2648
 	rra
 	rra
 	ld b, a
-	ldh a, [$FFC5]
+	ldh a, [hMarioState]
 	xor b				; invert the corresponding bits in FFC5
-	ldh [$FFC5], a
+	ldh [hMarioState], a
 .checkBits4and5
 	ld a, [wCommandArgument]
 	bit 5, a			; bit 5, replace Y direction with bit 1
@@ -6032,10 +6033,10 @@ Call_2648:: ; 2648
 	and a, $02
 	or a, $FD			; put bit 1 in a bitmask with all other bits set
 	ld b, a
-	ldh a, [$FFC5]
+	ldh a, [hMarioState]
 	set 1, a
 	and b				; and apply to FFC5
-	ldh [$FFC5], a
+	ldh [hMarioState], a
 .checkBit4
 	ld a, [wCommandArgument]
 	bit 4, a			; bit 4, replace X direction with bit 0
@@ -6043,10 +6044,10 @@ Call_2648:: ; 2648
 	and a, $01			; same, but with bit 0
 	or a, $FE
 	ld b, a
-	ldh a, [$FFC5]
-	set 0, a
+	ldh a, [hMarioState]
+	set FACING_RIGHT_BIT, a
 	and b
-	ldh [$FFC5], a
+	ldh [hMarioState], a
 .out
 	pop hl
 	jp .runScript
@@ -6211,8 +6212,8 @@ Call_2648:: ; 2648
 	ldh a, [$FFC1]
 	and a, $0F			; X speed
 	jp z, .jmp_2975		; if zero, no point in doing collision detection
-	ldh a, [$FFC5]
-	bit 0, a			; going right
+	ldh a, [hMarioState]
+	bit FACING_RIGHT_BIT, a			; going right
 	jr nz, .goingRight
 	call Call_2B84		; some sort of collision detection. left bound?
 	jr nc, .jmp_28CE
@@ -6260,9 +6261,9 @@ Call_2648:: ; 2648
 	cp a, $4
 	jr nz, .jmp_28E3
 .reverseAndGoRight		; bit 2 set, bit 3 unset
-	ldh a, [$FFC5]
-	set 0, a
-	ldh [$FFC5], a
+	ldh a, [hMarioState]
+	set FACING_RIGHT_BIT, a
+	ldh [hMarioState], a
 	jp .jmp_2975
 
 .jmp_28E3
@@ -6340,9 +6341,9 @@ Call_2648:: ; 2648
 	cp a, $4
 	jr nz, .jmp_296C
 .reverseAndGoLeft		; bit 2 set, bit 3 not set | at an edge
-	ldh a, [$FFC5]
-	res 0, a			; moving left | reverse direction
-	ldh [$FFC5], a
+	ldh a, [hMarioState]
+	res FACING_RIGHT_BIT, a			; moving left | reverse direction
+	ldh [hMarioState], a
 	jr .jmp_2975
 
 .jmp_296C				; bit 2 and 3 set
@@ -6355,7 +6356,7 @@ Call_2648:: ; 2648
 	ldh a, [$FFC1]
 	and a, $F0
 	jp z, .jmp_29FD		; no Y speed, get out
-	ldh a, [$FFC5]
+	ldh a, [hMarioState]
 	bit 1, a			; gravity
 	jr nz, .jmp_29C1
 	call Call_2C21		; upper left collision?
@@ -6383,9 +6384,9 @@ Call_2648:: ; 2648
 	jr z, .jmp_2987			; jump if neither set
 	cp a, $40				; test bit 6
 	jp nz, .jmp_29B6		; could've been a JR, bug
-	ldh a, [$FFC5]			; bit 6 set
+	ldh a, [hMarioState]			; bit 6 set
 	set 1, a				; moving down
-	ldh [$FFC5], a
+	ldh [hMarioState], a
 	jr .jmp_29FD
 
 .jmp_29B6
@@ -6422,9 +6423,9 @@ Call_2648:: ; 2648
 	jr z, .jmp_29C6
 	cp a, $10
 	jr nz, .jmp_29F4
-	ldh a, [$FFC5]
+	ldh a, [hMarioState]
 	res 1, a			; moving up
-	ldh [$FFC5], a
+	ldh [hMarioState], a
 	jr .jmp_29FD
 
 .jmp_29F4
@@ -6713,8 +6714,8 @@ Call_2B5D:: ; 2B5D
 	add a, $04
 	ldh [$FFAE], a
 	ld c, a
-	ldh a, [$FFC5]		; 1 if facing right
-	bit 0, a
+	ldh a, [hMarioState]		; 1 if facing right
+	bit FACING_RIGHT_BIT, a
 	jr .jmp_2B76
 
 	ldh a, [$FFCA]
@@ -6781,8 +6782,8 @@ Call_2BBB:: ; 2BBB
 	add a, $4		; middle of leftmost tile?
 	ldh [$FFAE], a
 	ld c, a
-	ldh a, [$FFC5]	; bit 0 on if facing right
-	bit 0, a
+	ldh a, [hMarioState]	; bit 0 on if facing right
+	bit FACING_RIGHT_BIT, a
 	jr .jmp_2BD4	; bug maybe? Should have been jr nz?
 
 	ldh a, [$FFCA]	; mortality and dimensions?
@@ -6855,8 +6856,8 @@ Call_2C21:: ; 2C21
 	add a, $04
 	ldh [$FFAE], a
 	ld c, a
-	ldh a, [$FFC5]
-	bit 0, a
+	ldh a, [hMarioState]
+	bit FACING_RIGHT_BIT, a
 	jr .jmp_2C3A		; Should've been JR NZ?
 
 	ldh a, [$FFCA]
