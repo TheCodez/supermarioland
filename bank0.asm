@@ -501,15 +501,15 @@ GameState_InitMenu::
 	ld a, $3C
 	ld hl, vBGMap0		; tile map
 	call FillStartMenuTopRow	; usually hidden by the HUD
-	ld hl, $9804
+	ld hl, vBGMap0 + $04 ; $9804
 	ld [hl], $94
-	ld hl, $9822
+	ld hl, vBGMap0 + $22 ; $9822
 	ld [hl], $95
 	inc l
 	ld [hl], $96		; Mario's head
 	inc l
 	ld [hl], $8C
-	ld hl, $982F		; Clouds in top right
+	ld hl, vBGMap0 + $2F ; $982F		; Clouds in top right
 	ld [hl], $3F
 	inc l
 	ld [hl], $4C
@@ -977,7 +977,7 @@ GameState_02::
 	ld a, c
 	ld [$C0AB], a		; "progress" in level, used to spawn enemies?
 	call DrawInitialScreen		; draw first screen of the level
-	ld hl, $982B		; right next to the coins
+	ld hl, vBGMap0 + $2B ; $982B		; right next to the coins
 	ld [hl], " "
 	inc l
 	ldh a, [hWorldAndLevel]
@@ -2133,7 +2133,7 @@ GameState_1D:: ; E31
 	add a, $20			; one screen width
 .nowrap
 	ld l, a
-	ld h, $98
+	ld h, HIGH(vBGMap0) ; $98
 	ld de, 9 * $20		; bottom of the gate is 9 tiles under top
 	add hl, de
 	ld a, l
@@ -2311,7 +2311,7 @@ GameState_23:: ; F33
 	sub a, $20
 .nowrap
 	ldh [hTextCursorLo], a
-	ld a, $98
+	ld a, HIGH(vBGMap0) ; $98
 	ldh [hTextCursorHi], a
 	xor a
 	ldh [$FFFB], a
@@ -2321,7 +2321,7 @@ GameState_23:: ; F33
 
 ; Fake Daisy speaking
 GameState_24:: ; F6A
-	ld hl, Text_FE1
+	ld hl, ThankYouText
 	call PrintVictoryMessage
 	cp a, $FF		; end of speech
 	ret nz
@@ -2399,7 +2399,7 @@ PrintVictoryMessage:: ; F8A
 	inc de
 	jr .printLetter
 
-Text_FE1
+ThankYouText::
 	db "thank you mario.", $FE, $73
 	db "oh! daisy", $FF
 
@@ -2601,7 +2601,7 @@ GameState_29:: ; 1116
 	dec b
 	jr nz, .loop
 	call Call_1736
-	ld a, $98
+	ld a, HIGH(vBGMap0) ; $98
 	ldh [hTextCursorHi], a
 	ld a, $A5
 	ldh [hTextCursorLo], a
@@ -2696,7 +2696,7 @@ GameState_2C:: ; 11D0
 .clearMessageAndOut
 	ld [hl], $F0
 	ld b, $6D
-	ld hl, $98A5
+	ld hl, vBGMap0 + $A5 ; $98A5
 .loop
 	WAIT_FOR_HBLANK
 	WAIT_FOR_HBLANK
@@ -2907,7 +2907,7 @@ GameState_31:: ; 12F1
 	ldh a, [$FFE9]		; first not yet loaded column
 	sub a, $20
 	ld l, a
-	ld h, $98
+	ld h, HIGH(vBGMap0) ; $98
 .clearLoop2
 	WAIT_FOR_HBLANK
 	ld [hl], " "
@@ -4230,11 +4230,11 @@ DisplayCoins::; 1C1B
 	ldh a, [hCoins]
 	ld b, a
 	and a, $0F
-	ld [$982A], a		; coins ones
+	ld [vBGMap0 + $2A], a		; coins ones
 	ld a, b
 	and a, $F0
 	swap a
-	ld [$9829], a		; coin tens
+	ld [vBGMap0 + $29], a		; coin tens
 	xor a
 	ldh [$FFFE], a
 	inc a
@@ -4267,11 +4267,11 @@ UpdateLives::
 	ld a, [wLives]
 	ld b, a
 	and a, $0F
-	ld [$9807], a
+	ld [vBGMap0 + $07], a
 	ld a, b
 	and a, $F0
 	swap a
-	ld [$9806], a		; TODO Gives these fellas a name
+	ld [vBGMap0 + $06], a		; TODO Gives these fellas a name
 .out
 	xor a
 	ld [wLivesEarnedLost], a
@@ -5249,7 +5249,7 @@ DrawColumn:: ; 2258
 	ld a, $40
 .noWrapAround
 	ldh [$FFE9], a
-	ld h, $98
+	ld h, HIGH(vBGMap0) ; $98
 	ld de, $C0B0		; the next column is preloaded here by something
 	ld b, $10			; 16 tiles high
 .nextRow
@@ -7177,7 +7177,7 @@ GameState_12:: ; 3D97
 	ld b, $FF
 	dec c
 	jr nz, .tilemapLoop
-	ld de, $988B	; todo
+	ld de, vBGMap0 + $8B ; $988B	; todo
 	ld a, [wLives]
 	ld b, a
 	and a, $0F
@@ -7234,7 +7234,7 @@ GameState_13:: ; 3DD7
 	jr nz, .bottomLoop
 	ld a, $E9
 	ld [hl], a		; Bottom Right corner
-	ld hl, $9845
+	ld hl, vBGMap0 + $45 ; $9845
 	ld a, "b"
 	ldi [hl], a
 	ld a, "o"
@@ -7254,7 +7254,7 @@ GameState_13:: ; 3DD7
 	ldi [hl], a
 	ld a, "e"
 	ld [hl], a		; bonus game
-	ld hl, $9887
+	ld hl, vBGMap0 + $87 ; $9887
 	ld a, $E4		; mario head
 	ldi [hl], a
 	inc l
@@ -7313,7 +7313,7 @@ GameState_13:: ; 3DD7
 	inc de
 	dec a
 	jr nz, .addAtoDE	; No ADD DE, A instruction
-	ld hl, $98D2		; First prize
+	ld hl, vBGMap0 + $D2 ; $98D2		; First prize
 	ld bc, $60			; 3 screen rows
 .displayPrize
 	ld a, [de]
