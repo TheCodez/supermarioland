@@ -1,140 +1,47 @@
-SECTION "High RAM", HRAM
+hJoyHeld EQU $FF80
+hJoyPressed EQU $FF81
 
-hJoyHeld:: ; FF80 keys currently pressed
-	ds 1
+hVBlankOccurred EQU $FF85
 
-hJoyPressed:: ; FF81 keys pressed since last time
-	ds 1
+hSuperStatus EQU $FF99
+hWinCount EQU $FF9A
+hStompChainTimer EQU $FF9C
+hStompChain EQU $FF9D
 
-ds $85 - $82
+hScrollX EQU $FFA4
+hTimer EQU $FFA6
+hFrameCounter EQU $FFAC
+hGamePaused EQU $FFB2
+hGameState EQU $FFB3
+hWorldAndLevel EQU $FFB4
+hSuperballMario EQU $FFB5
+hDMARoutine EQU $FFB6
 
-hVBlankOccurred::	; FF85
-	ds 1
+hCurrentChannel EQU $FFD0
+hPanTimer EQU $FFD5
+hPanInterval EQU $FFD6
+hPanCounter EQU $FFD7
+hMonoOrStereo EQU $FFD8
+hChannelEnableMask1 EQU $FFD9
+hChannelEnableMask2 EQU $FFDA
+hPauseTuneTimer EQU $FFDE
+hPauseUnpauseMusic EQU $FFDF
+hSavedRomBank EQU $FFE1
+hTextCursorHi EQU $FFE2
+hTextCursorLo EQU $FFE3
 
-ds $99 - $86
+hLevelIndex EQU $FFE4
+hScreenIndex EQU $FFE5
 
-hSuperStatus:: ; FF99 TODO constants
-	ds 1
+hColumnIndex EQU $FFE6
+hColumnPointerHi EQU $FFE7
+hColumnPointerLo EQU $FFE8
+hFloatyX EQU $FFEB
+hFloatyY EQU $FFEC
+hFloatyControl EQU $FFED
+hIsUnderground EQU $FFF9
+hCoins EQU $FFFA
+hActiveRomBank EQU $FFFD
 
-hWinCount::		; FF9A TODO mirrored at C0E1?
-	ds 1
 
-ds 1			; FF9B unknown
 
-hStompChainTimer:: ; FF9C
-	ds 1
-
-hStompChain::	; FF9D
-	ds 1
-
-ds $A4 - $9E
-
-hScrollX::		; FFA4
-	ds 1
-
-ds 1			; FFA5 unknown
-
-hTimer::		; FFA6 Generic frame based timer
-	ds 1
-
-ds $AC - $A7
-
-hFrameCounter:: ; FFAC
-	ds 1
-
-ds $B2 - $AD
-
-hGamePaused::	; FFB2
-	ds 1
-
-hGameState::	; FFB3
-	ds 1
-
-hWorldAndLevel::; FFB4
-	ds 1
-
-hSuperballMario::; FFB5
-	ds 1
-
-hDMARoutine::	; FFB6
-	ds $A
-
-ds $D0 - $C0
-
-hCurrentChannel:: ; FFD0 Used in music routine
-	ds 1
-
-ds $D5 - $D1
-
-hPanTimer:: ; FFD5
-	ds 1
-
-hPanInterval:: ; FFD6
-	ds 1
-
-hPanCounter:: ; FFD7
-	ds 1
-
-hMonoOrStereo:: ; FFD8
-	ds 1
-
-hChannelEnableMask1:: ; FFD9
-	ds 1
-
-hChannelEnableMask2:: ; FFDA
-	ds 1
-
-ds $DE - $DB
-
-hPauseTuneTimer:: ; FFDE
-	ds 1
-
-hPauseUnpauseMusic::; FFDF
-	ds 1
-
-ds 1			; FFE0
-
-hSavedRomBank::	; FFE1
-	ds 1
-
-hTextCursorHi:: ; FFE2
-	ds 1
-
-hTextCursorLo:: ; FFE3
-	ds 1
-
-hLevelIndex::	; FFE4
-	ds 1
-
-hScreenIndex::	; FFE5
-	ds 1
-
-hColumnIndex::	; FFE6
-	ds 1
-
-hColumnPointerHi::	; FFE7
-	ds 1
-
-hColumnPointerLo:: ; FFE8
-	ds 1
-
-ds 2 ; FFE9 FFEA
-
-hFloatyX:: ; FFEB
-	ds 1
-
-hFloatyY:: ; FFEC
-	ds 1
-
-hFloatyControl:: ; FFED
-	ds 1
-
-ds $FA - $EE
-
-hCoins::	; FFFA
-	ds 1
-
-ds 2
-
-hActiveRomBank::	; FFFD
-	ds 1

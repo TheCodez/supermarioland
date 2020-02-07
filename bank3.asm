@@ -1,5 +1,6 @@
 INCLUDE "gbhw.asm"
 INCLUDE "sound_constants.asm"
+INCLUDE "hram.asm"
 
 SECTION "bank 3", ROMX, BANK[3]
 LevelPointersBank3:: ; 3:4000

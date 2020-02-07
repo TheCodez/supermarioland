@@ -1,5 +1,6 @@
 INCLUDE "charmap.asm"
 INCLUDE "gbhw.asm"
+INCLUDE "hram.asm"
 
 SECTION "bank 2", ROMX, BANK[2]
 LevelPointersBank2:: ; 2:4000
@@ -432,7 +433,7 @@ UpdateFloaties:: ; 5892
 
 ; setup Mario's sprite in OAM
 _GameState_14:: ; 5A72
-	ld hl, wOAMBuffer + 4*$C
+	ld hl, wOAMBuffer + 4 * $C
 	ldh a, [rDIV]
 	and a, $3
 	inc a
@@ -509,7 +510,7 @@ _GameState_15:: ; 5ABB
 	ld a, [$DA27]
 	bit 0, a
 	jr z, .jmp_5B07
-	ld hl, wOAMBuffer + 4*$C
+	ld hl, wOAMBuffer + 4 * $C
 	ld b, $04
 	ld a, [hl]		; Y pos
 	cp a, $80		; bottom floor
@@ -615,7 +616,7 @@ _GameState_17:: ; 5B65
 	ld a, $0A				; walking music
 	ld [hl], a
 .jmp_5B73
-	ld hl, wOAMBuffer + 4*$C + 1	; X pos
+	ld hl, wOAMBuffer + 4 * $C + 1	; X pos
 	ld de, $5C9D			; todo
 	ld b, $04
 	ld a, [$DA14]			; animation index
@@ -655,7 +656,7 @@ _GameState_17:: ; 5B65
 	ld a, [$DA14]
 	add a, $04
 	ld [$DA14], a
-	ld hl, wOAMBuffer + 4*$C + 1
+	ld hl, wOAMBuffer + 4 * $C + 1
 	ldd a, [hl]
 	cp a, $80
 	jr nc, .getPrize
@@ -697,7 +698,7 @@ _GameState_17:: ; 5B65
 	ret
 
 _GameState_18:: ; 5BEB
-	ld hl, wOAMBuffer + 4*$C
+	ld hl, wOAMBuffer + 4 * $C
 	ld b, $04			; 4 objects per sprite
 	ld de, $5C9D
 	ld a, [$DA14]
@@ -738,7 +739,7 @@ _GameState_18:: ; 5BEB
 	ld a, [$DA14]
 	add a, $04
 	ld [$DA14], a
-	ld hl, wOAMBuffer + 4*$C
+	ld hl, wOAMBuffer + 4 * $C
 	ld a, [hl]
 	cp a, $50
 	jr z, .resumeWalking
@@ -756,7 +757,7 @@ _GameState_18:: ; 5BEB
 	ret
 
 _GameState_19:: ; 5C44
-	ld hl, wOAMBuffer + 4*$C
+	ld hl, wOAMBuffer + 4 * $C
 	ld b, $04			; 4 objects per sprite
 	ld de, $5C9D
 	ld a, [$DA14]
@@ -797,7 +798,7 @@ _GameState_19:: ; 5C44
 	ld a, [$DA14]
 	add a, $04
 	ld [$DA14], a
-	ld hl, wOAMBuffer + 4*$C
+	ld hl, wOAMBuffer + 4 * $C
 	ld a, [hl]
 	cp a, $38				; top floor
 	jr z, .resumeWalking
@@ -842,7 +843,7 @@ _GameState_1A:: ; 5CDE
 .erasePrizes
 	ld hl, $98D1			; the * of the top prize
 	ld de, $0060
-	ld a, [wOAMBuffer + 4*$C]	; Y coordinate
+	ld a, [wOAMBuffer + 4 * $C]	; Y coordinate
 	ld b, a
 	cp a, $38
 	jr z, .checkHiMidFloor
@@ -876,7 +877,7 @@ _GameState_1A:: ; 5CDE
 .checkPrize
 	dec c					; erase prizes twice. todo why
 	jr nz, .erasePrizes
-	ld hl, wOAMBuffer + 4*$C + 1	; X
+	ld hl, wOAMBuffer + 4 * $C + 1	; X
 	ldd a, [hl]
 	add a, $18				; 3 tiles ahead
 	ldh [$FFAE], a
@@ -975,7 +976,7 @@ _GameState_1A:: ; 5CDE
 	cp a, $02
 	jr z, .jmp_5DF7
 .powerupAnimation
-	ld hl, wOAMBuffer + 4*$C + 2	; tile number
+	ld hl, wOAMBuffer + 4 * $C + 2	; tile number
 	ld b, $04				; 4 objects
 	ld a, [wBonusGameGrowAnimationFlag]
 	and a
@@ -1025,7 +1026,7 @@ _GameState_1A:: ; 5CDE
 	ld a, [$DA20]
 	and a
 	jr nz, .jmp_5E3F
-	ld hl, wOAMBuffer + 4*$C
+	ld hl, wOAMBuffer + 4 * $C
 	ld a, $38
 	ld b, a
 	ldi [hl], a
@@ -1060,7 +1061,7 @@ _GameState_1A:: ; 5CDE
 	ret
 
 .jmp_5E3F
-	ld hl, wOAMBuffer + 4*$C
+	ld hl, wOAMBuffer + 4 * $C
 	ld a, [$DA21]
 	cp a, $02
 	jp z, .jmp_5EDA
