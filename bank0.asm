@@ -44,7 +44,7 @@ SECTION "Interrupt Timer", ROM0[$0050]
 ; Switch to bank 3 (XXX contains music code?)
 ; Overlaps into serial interrupt mid opcode, but it's unused anyway
 	push af
-	ld a, $03
+	ld a, BANK(Call_7FF0)
 	ld [MBC1RomBank], a
 	call Call_7FF0 ; TODO
 	ldh a, [hActiveRomBank]
@@ -295,7 +295,7 @@ Init::	; 0185
 	ld [wContinueWorldAndLevel], a
 	ld a, 2
 	ld [$C0DC], a
-	ld a, $0E
+	ld a, STATE_LOAD_MENU
 	ldh [hGameState], a	; TODO
 	ld a, 3
 	ld [MBC1RomBank], a
@@ -317,9 +317,7 @@ Init::	; 0185
 	call KillMario
 	call Call_1736
 .timeNotUp
-	SAVE_AND_SWITCH_ROM_BANK 3
-	call ReadJoypad
-	RESTORE_ROM_BANK
+	homecall ReadJoypad
 	ldh a, [$FF9F]	; Demo mode?
 	and a
 	jr nz, .decrementTimers	; Can't pause the demo
@@ -381,7 +379,7 @@ Init::	; 0185
 .handleGameState
 	ldh a, [hGameState]
 	rst $28		; Jump Table
-	dw GameState_00 ; 0x00   Normal gameplay
+	dw HandleGamePlay ; 0x00   Normal gameplay
 	dw GameState_Dead ; 0x01 ✓ Dead?
 	dw GameState_02 ; 0x02 ✓ Reset to checkpoint
 	dw PrepareDeath ; 0x03 ✓ Pre dying
@@ -543,10 +541,10 @@ GameState_InitMenu::
 	jr nz, .replaceTopScore
 .printTopScore
 	ld de, wTopScore + 2
-	ld hl, $9969
+	ld hl, vBGMap0 + 11 * SCRN_VX_B + 9 ; $9969
 	call DisplayScore.fromDEtoHL
 	ld hl, wOAMBuffer + 4
-	ld [hl], $78	; Y
+	ld [hl], 120			; Y
 	ld a, [wNumContinues]
 	and a
 	jr z, .noContinues
@@ -766,7 +764,7 @@ GameState_0F::
 	ld [$C0A4], a
 	dec a
 	ld [$DFE8], a
-	ld a, 3
+	ld a, BANK(InitSound)
 	ld [MBC1RomBank], a
 	call InitSound
 	ldh a, [hActiveRomBank]
@@ -909,8 +907,65 @@ PrepareHUD::
 	ret
 
 ; Normal gameplay. Tons of function calls, let's do this later...
-GameState_00::	; 627
-INCBIN "baserom.gb", $0627, $06BC - $0627
+HandleGamePlay::	; 627
+    call LoadColumns
+    call EntityCollision
+    ldh a, [hActiveRomBank]
+    ldh [hSavedRomBank], a
+    ld a, $03
+    ldh [hActiveRomBank], a
+    ld [MBC1RomBank], a
+    call $48FC
+    ld bc, $C208
+    ld hl, Data_216D
+    call Call_490D
+    ld bc, $C218
+    ld hl, Data_216D
+    call Call_490D
+    ld bc, $C228
+    ld hl, Data_216D
+    call Call_490D
+    ld bc, $C238
+    ld hl, Data_216D
+    call Call_490D
+    ld bc, $C248
+    ld hl, Data_216D
+    call Call_490D
+    call $4A94
+    call $498B
+    call $4AEA
+    call $4B3C
+    call $4B6F
+    call $4B8A
+    call $4BB5
+    ldh a, [hSavedRomBank]
+    ldh [hActiveRomBank], a
+    ld [MBC1RomBank], a
+    call Call_1F2D
+    call Call_2491
+    ldh a, [hActiveRomBank]
+    ldh [hSavedRomBank], a
+    ld a, $02
+    ldh [hActiveRomBank], a
+    ld [MBC1RomBank], a
+    call $5844
+    ldh a, [hSavedRomBank]
+    ldh [hActiveRomBank], a
+    ld [MBC1RomBank], a
+    call Jmp_185D.call_198C
+    call Call_16F5
+    call Call_17BC
+    call Call_AEA
+    call Call_A2D
+    call Call_1F03
+    ld hl, $C0CE
+    ld a, [hl]
+    and a
+    ret z
+
+    dec [hl]
+    call Call_2113
+    ret
 
 ; 06BC
 GameState_Dead::
@@ -1048,7 +1103,7 @@ StartLevelMusic::
 	ld a, [wInvincibilityTimer]
 	and a
 	ret nz
-	ld a, 3
+	ld a, BANK(InitSound)
 	ld [MBC1RomBank], a	; no need to save rom bank, interrupts are disabled
 	call InitSound
 	ldh a, [hActiveRomBank]
@@ -1868,9 +1923,7 @@ GameState_05:: ; C73
 	jr z, .endLevel
 	ld a, 1
 	ld [wGameTimer], a
-	SAVE_AND_SWITCH_ROM_BANK 2
-	call UpdateTimerAndFloaties		; why
-	RESTORE_ROM_BANK
+	homecall UpdateTimerAndFloaties		; why
 	ld de, $0010
 	call AddScore
 	ld a, 1
@@ -2178,7 +2231,7 @@ GameState_1E:: ; E5D
 .gateIsOpen
 	ld a, $10
 	ldh [hTimer], a
-	ld a, $03
+	ld a, BANK(InitSound)
 	ldh [hActiveRomBank], a
 	ld [MBC1RomBank], a
 	call InitSound
@@ -2468,7 +2521,7 @@ GameState_26:: ; 1055
 	ld bc, $C218
 	ld hl, Data_216D	; jumping curve
 	push bc
-	call $490D			; animates smth?
+	call Call_490D			; animates smth?
 	pop hl
 	dec l
 	ld a, [hl]
@@ -5457,7 +5510,63 @@ Call_2363:: ; 2363
 
 ; too many calls to far banks
 GameState_0D::
-INCBIN "baserom.gb", $2376, $2401 - $2376
+    ldh a, [$B2]
+    and a
+    ret nz
+
+    call LoadColumns
+    call $4FB2
+    ld a, [$D007]
+    and a
+    call nz, Jmp_1B45
+    call EntityCollision
+    call $4FEC
+    call $5118
+    ldh a, [hActiveRomBank]
+    ldh [hSavedRomBank], a
+    ld a, $03
+    ldh [hActiveRomBank], a
+    ld [MBC1RomBank], a
+    call $498B
+    ld bc, $C218
+    ld hl, Data_216D
+    call Call_490D
+    ld bc, $C228
+    ld hl, Data_216D
+    call Call_490D
+    ld bc, $C238
+    ld hl, Data_216D
+    call Call_490D
+    ld bc, $C248
+    ld hl, Data_216D
+    call Call_490D
+    call $4AEA
+    call $4B8A
+    call $4BB5
+    ldh a, [hSavedRomBank]
+    ldh [hActiveRomBank], a
+    ld [MBC1RomBank], a
+    call Call_2491
+    ldh a, [hActiveRomBank]
+    ldh [hSavedRomBank], a
+    ld a, $02
+    ldh [hActiveRomBank], a
+    ld [MBC1RomBank], a
+    call $5844
+    ldh a, [hSavedRomBank]
+    ldh [hActiveRomBank], a
+    ld [MBC1RomBank], a
+    call Call_1736
+    call $515E
+    call Call_1F03
+    ldh a, [$AC]
+    and $03
+    ret nz
+
+    ld a, [$C203]
+    xor $01
+    ld [$C203], a
+    ret
 
 AnimateBackground:: ; 2401
 	ld a, [wBackgroundAnimated]
@@ -5737,7 +5846,7 @@ DrawEnemies::; 2568
 	ld a, c
 	cp a, $0A
 	jr nz, .drawEnemySlot
-	ld hl, wOAMBuffer + 4*$14
+	ld hl, wOAMBuffer + 4 * $14
 	ld a, [wObjectsDrawn]
 	rlca
 	rlca
@@ -5762,7 +5871,7 @@ DrawEnemies::; 2568
 .drawEnemy
 	xor a
 	ld [$D000], a			; D000 is used to temporarily store object flags
-	ld hl, wOAMBuffer + 4*$14
+	ld hl, wOAMBuffer + 4 * $14
 	ld a, [wObjectsDrawn]
 	rlca
 	rlca					; 4 bytes per object

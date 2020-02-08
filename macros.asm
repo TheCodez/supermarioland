@@ -11,6 +11,18 @@ FAR_CALL: MACRO
 	RESTORE_ROM_BANK
 ENDM
 
+homecall: MACRO
+	ldh a, [hActiveRomBank]
+	ldh [hSavedRomBank], a
+	ld a, BANK(\1)
+	ldh [hActiveRomBank], a
+	ld [MBC1RomBank], a
+	call \1
+	ldh a, [hSavedRomBank]
+	ldh [hActiveRomBank], a
+	ld [MBC1RomBank], a
+ENDM
+
 SAVE_AND_SWITCH_ROM_BANK: MACRO
 	ldh a, [hActiveRomBank]
 	ldh [hSavedRomBank], a
