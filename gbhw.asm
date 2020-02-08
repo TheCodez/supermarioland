@@ -11,6 +11,14 @@ SERIAL   EQU 3
 JOYPAD   EQU 4
 
 ; OAM attribute flags
+OAMF_PRI        EQU %10000000 ; Priority
+OAMF_YFLIP      EQU %01000000 ; Y flip
+OAMF_XFLIP      EQU %00100000 ; X flip
+OAMF_PAL0       EQU %00000000 ; Palette number; 0,1 (DMG)
+OAMF_PAL1       EQU %00010000 ; Palette number; 0,1 (DMG)
+OAMF_BANK0      EQU %00000000 ; Bank number; 0,1 (GBC)
+OAMF_BANK1      EQU %00001000 ; Bank number; 0,1 (GBC)
+
 OAM_PALETTE   EQU %111
 OAM_TILE_BANK EQU 3
 OAM_OBP_NUM   EQU 4 ; Non CGB Mode Only
@@ -18,6 +26,15 @@ OAM_X_FLIP    EQU 5
 OAM_Y_FLIP    EQU 6
 OAM_PRIORITY  EQU 7 ; 0: OBJ above BG, 1: OBJ behind BG (colors 1-3)
 
+SCRN_X    EQU 160 ; Width of screen in pixels
+SCRN_Y    EQU 144 ; Height of screen in pixels
+SCRN_X_B  EQU 20  ; Width of screen in bytes
+SCRN_Y_B  EQU 18  ; Height of screen in bytes
+
+SCRN_VX   EQU 256 ; Virtual width of screen in pixels
+SCRN_VY   EQU 256 ; Virtual height of screen in pixels
+SCRN_VX_B EQU 32  ; Virtual width of screen in bytes
+SCRN_VY_B EQU 32  ; Virtual height of screen in bytes
 
 ; Hardware registers
 rJOYP       EQU $ff00 ; Joypad (R/W)

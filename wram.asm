@@ -1,7 +1,13 @@
 SECTION "wram", WRAM0
 
 wOAMBuffer::
-	ds $A0
+	ds 4 * 3
+wMarioOAMBuffer::
+	ds 4 * 4
+
+	ds 4 * 8
+wDynamicOAMBuffer::
+	ds 4 * 25
 
 wScore::	; C0A0
 	ds 3
@@ -40,7 +46,12 @@ ds $C0D3 - $C0C3
 wInvincibilityTimer:: ; C0D3
 	db
 
-ds $C0DF - $C0D4
+ds $C0DD - $C0D4
+
+wMarioDeathY:: ; C0DD
+	ds 1
+
+ds 1
 
 wScrollY:: ; C0DF
 	db
