@@ -69,7 +69,24 @@ wMarioPosY::  ; C201
 wMarioPosX::  ; C202
 	ds 1
 
-ds $D002 - $C203
+wAnimIndex:: ; C203
+	ds 1
+
+ds 3
+
+; Jump status
+; 00 on ground;
+; 01 ascending;
+; 02 descending
+wJumpStatus:: ; C207
+	ds 1
+
+ds 2
+
+wMarioOnGround:: ; C20A
+	ds 1
+
+ds $D002 - $C20B
 
 wCurrentCommand:: ; D002
 	db

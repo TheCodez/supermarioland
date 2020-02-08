@@ -68,7 +68,7 @@ VBlank:: ; $0060
 	ld hl, hFrameCounter
 	inc [hl]
 	ldh a, [hGameState]
-	cp a, $3A			; Game over? TODO
+	cp a, STATE_GAMEOVER	; Game over? TODO
 	jr nz, .gameNotOver
 	ld hl, rLCDC
 	set 5, [hl]			; Turn on window
@@ -103,7 +103,7 @@ LCDStatus::
 	ldh [rSCY], a
 .checkForGameOver
 	ldh a, [hGameState]
-	cp a, $3A
+	cp a, STATE_GAMEOVER
 	jr nz, .out			; game not over
 	ld hl, rWY
 	ld a, [hl]
@@ -113,7 +113,7 @@ LCDStatus::
 	cp a, $87			; Until the bottom is visible, don't bother switching
 	jr nc, .out			; it off
 .scheduleInterrupt
-	add a, $08			; schedule an interrupt in 8 scanlines to turn
+	add a, 8			; schedule an interrupt in 8 scanlines to turn
 	ldh [rLYC], a		; the window off
 	ld [wGameOverWindowEnabled], a
 .out
@@ -296,8 +296,8 @@ Init::	; 0185
 	ld a, 2
 	ld [$C0DC], a
 	ld a, STATE_LOAD_MENU
-	ldh [hGameState], a	; TODO
-	ld a, 3
+	ldh [hGameState], a
+	ld a, BANK(InitSound) ; 3
 	ld [MBC1RomBank], a
 	ld [$C0A4], a
 	ld a, 0
@@ -396,7 +396,7 @@ Init::	; 0185
 	dw GameState_InitMenu ; 0x0E ✓ Init menu 14
 	dw $04C3 ; GameState_0F 0x0F ✓ Start menu
 	dw GameState_10 ; 0x10 ✓ Unused? todo
-	dw GameState_StartLevel ; 0x11 ✓ Level start
+	dw HandleStartLevel ; 0x11 ✓ Level start
 	dw GameState_12 ; 0x12 ✓ Go to Bonus game
 	dw GameState_13 ; 0x13 ✓ Entering Bonus game
 	dw GameState_SetupMarioSprite ; 0x14 ✓ Setup Mario sprite
@@ -437,7 +437,7 @@ Init::	; 0185
 	dw GameState_37 ; 0x37 ✓ Airplane leaving
 	dw GameState_38 ; 0x38 ✓ THE END letters flying
 	dw GameState_39 ; 0x39 ✓ Pre game over?
-	dw GameState_3A ; 0x3A ✓ Game over
+	dw HandleGameOver ; 0x3A ✓ Game over
 	dw GameState_3B ; 0x3B ✓ Pre time up
 	dw GameState_3C ; 0x3C ✓ Time up
 	dw $06BB ; 0x3D  
@@ -669,7 +669,7 @@ GameState_0F::
 	ld a, [wNumContinues]
 	and a
 	jr z, .checkLevelSelect	; if we have no continues, pretend like nothing happened
-	ld hl, wOAMBuffer + 4*1
+	ld hl, wOAMBuffer + 4
 	ld a, [hl]
 	xor a, $F8				; Clever... Switches between 80 and 78
 	ld [hl], a
@@ -708,7 +708,7 @@ GameState_0F::
 .drawNewLevelSelect
 	ldh [hLevelIndex], a
 .drawLevelSelect	; with sprites
-	ld hl, $C008
+	ld hl, wOAMBuffer + 8 ; $C008
 	ldh a, [hWorldAndLevel]	; nibble encoded
 	ld b, $78		; Y coordinate
 	ld c, a
@@ -749,14 +749,14 @@ GameState_0F::
 	ldh [hLevelIndex], a	; level index and encoding
 	ld a, $50
 	ld [$C0D7], a	; timer
-	ld a, $11		; TODO
+	ld a, STATE_START_LEVEL
 	ldh [hGameState], a
 	xor a
 	ldh [hWinCount], a ; to avoid expert mode in demos. Mirrored at C0E1
 	ret
 
 .startLevel
-	ld a, $11
+	ld a, STATE_START_LEVEL
 	ldh [hGameState], a
 	xor a
 	ldh [rIF], a
@@ -773,13 +773,13 @@ GameState_0F::
 	ld [$DFE0], a
 	ld [$DFF0], a
 	ld [$DFF8], a
-	ld a, $7			; enable timer interrupt TODO
+	ld a, 7			; enable timer interrupt TODO
 	ld [rIE], a
 	ret
 
 ; TODO more random data... Demo levels: 1-1, 1-2, 3-3
 .data_569:: ; 569
-db $11, $00, $12, $01, $33, $08
+	db $11, $00, $12, $01, $33, $08
 
 ; What kind of garbage is this?
 FillStartMenuTopRow: ; 56F
@@ -790,9 +790,7 @@ FillStartMenuTopRow: ; 56F
 	jr nz, .loop
 	ret
 
-GameState_StartLevel::	; 576
-; start level
-.entryPoint::
+HandleStartLevel::	; 576
 	xor a
 	ldh [rLCDC], a	; turn off LCD
 	di
@@ -801,8 +799,8 @@ GameState_StartLevel::	; 576
 	jr nz, .jmp_58B
 	xor a
 	ld [wScore], a			; ones and tens
-	ld [wScore+1], a		; hundreds and thousands
-	ld [wScore+2], a		; ten and hundred thousands
+	ld [wScore + 1], a		; hundreds and thousands
+	ld [wScore + 2], a		; ten and hundred thousands
 	ldh [hCoins], a
 .jmp_58B
 	call PrepareTiles	; todo
@@ -837,12 +835,14 @@ GameState_StartLevel::	; 576
 	call UpdateLives.displayLives
 	ldh a, [hWorldAndLevel]
 	call GameState_08.loadWorldTiles
+
 GameState_10:: ; 5CE Huh? Unused?
 	ret
 
 Call_5CF:: ; 05CF  What a waste
-	ld hl, $9BFF	; TODO... name
+	ld hl, vBGMap0 + 31 * SCRN_VX_B + 31 ; $9BFF
 	ld bc, $0400
+
 EraseTileMap:: ; 5D5
 .loop
 	ld a, " "
@@ -879,7 +879,7 @@ PrepareTiles::	; the three upper banks have tiles at the same location?
 	call CopyData
 	ld hl, $5603
 	ld de, $C600	; copy of the animated background tile...
-	ld b, $08
+	ld b, 8
 .loop
 	ldi a, [hl]
 	ld [de], a
@@ -945,10 +945,10 @@ HandleGamePlay::	; 627
     call Call_2491
     ldh a, [hActiveRomBank]
     ldh [hSavedRomBank], a
-    ld a, $02
+    ld a, BANK(UpdateTimerAndFloaties)
     ldh [hActiveRomBank], a
     ld [MBC1RomBank], a
-    call $5844
+    call UpdateTimerAndFloaties
     ldh a, [hSavedRomBank]
     ldh [hActiveRomBank], a
     ld [MBC1RomBank], a
@@ -1086,10 +1086,10 @@ GameState_02::
 .autoscroll
 	ld a, $0D
 	ldh [hGameState], a		; autoscroll
-	ld a, [$C203]			; animation index
+	ld a, [wAnimIndex]			; animation index
 	and a, $F0
 	or c
-	ld [$C203], a
+	ld [wAnimIndex], a
 .out
 	call InitEnemySlots
 	ei
@@ -1176,7 +1176,7 @@ DrawInitialScreen::
 	and a
 	jr z, .drawLevel	; jump if small mario
 	ld a, $10
-	ld [$C203], a		; animation index. upper nibble is 1 of large mario
+	ld [wAnimIndex], a		; animation index. upper nibble is 1 of large mario
 .drawLevel::			; does weird things in autoscroll
 	ld hl, hColumnIndex
 	xor a
@@ -1246,7 +1246,7 @@ EntityCollision:: ; 84E
 	ldh a, [hSuperStatus]
 	cp a, $02
 	jr nz, .jmp_88E
-	ld a, [$C203]
+	ld a, [wAnimIndex]
 	cp a, $18
 	jr z, .jmp_88E
 	ld a, -$2
@@ -1314,14 +1314,14 @@ EntityCollision:: ; 84E
 	call StombEnemy
 	and a
 	jr z, .out
-	ld hl, $C20A		; 1 if on ground
+	ld hl, wMarioOnGround	; 1 if on ground
 	ld [hl], 0
 	dec l
 	dec l
 	ld [hl], $D			; C208
 	dec l
 	ld [hl], 1			; C207 jump status
-	ld hl, $C203		; animation
+	ld hl, wAnimIndex		; animation
 	ld a, [hl]
 	and a, $F0
 	or a, $04			; flying
@@ -1659,7 +1659,7 @@ Call_AAF:: ; AAF
 
 ; has to do with Mario riding on platforms and blocks
 Call_AEA:: ; AEA
-	ld a, [$C207]		; jump status
+	ld a, [wJumpStatus]		; jump status
 	cp a, 1
 	ret z
 	ld de, $0010
@@ -1753,7 +1753,7 @@ Call_AEA:: ; AEA
 	add hl, bc
 	ld [hl], $01		; D1xB
 	xor a
-	ld hl, $C207
+	ld hl, wJumpStatus
 	ldi [hl], a			; C207 jump status
 	ldi [hl], a			; C208
 	ldi [hl], a			; C209
@@ -2246,7 +2246,7 @@ GameState_1F:: ; E96
 	ret nz
 	xor a
 	ld [$C0D2], a		; increments at end of level
-	ld [$C207], a		; jump status
+	ld [wJumpStatus], a		; jump status
 	inc a
 	ldh [hIsUnderground], a		; tiens, non zero in underground
 	ld hl, hGameState
@@ -2269,7 +2269,7 @@ GameState_20:: ; EA9
 .walkRight
 	ld a, $10
 	ldh [hJoyHeld], a	; simulate pressing Right button todo
-	ld a, [$C203]		; animation index
+	ld a, [wAnimIndex]		; animation index
 	and a, $0F
 	cp a, $0A			; animations >= $0A are sub or airplane
 	call c, Call_17BC
@@ -2354,9 +2354,9 @@ GameState_23:: ; F33
 	ld a, [wMarioPosX]
 	cp a, $4C			; almost middle of screen
 	ret c
-	ld a, [$C203]
+	ld a, [wAnimIndex]
 	and a, $F0
-	ld [$C203], a		; mario standing still
+	ld [wAnimIndex], a		; mario standing still
 	ld a, [$FFE0]		; top of gate?
 	sub a, $40			; two tiles up
 	add a, $04			; four to the right
@@ -2860,7 +2860,7 @@ HandleEnterAirplane:: ; 12A1
 	inc e
 	dec b
 	jr nz, .loop		; todo macro?
-	ld hl, $C203		; animation
+	ld hl, wAnimIndex		; animation
 	ld [hl], $26
 	ld hl, $C241		; previous spaceship
 	ld [hl], $F0		; out of sight, out of mind
@@ -3452,10 +3452,10 @@ GameState_0C:: ; 16DA
 
 Call_16F5:: ; 16F5 Animate mario?
 	call Call_1736
-	ld a, [$C20A]			; 1 if mario on the ground
+	ld a, [wMarioOnGround]			; 1 if mario on the ground
 	and a
 	jr z, .jmp_172C
-	ld a, [$C203]			; animation index
+	ld a, [wAnimIndex]			; animation index
 	and a, $0F				; low nibble
 	cp a, $0A
 	jr nc, .jmp_172C		; JR if animation index is >= 0xA, which is sub and airplane stuff
@@ -3467,7 +3467,7 @@ Call_16F5:: ; 16F5 Animate mario?
 	and a, $03
 	jr nz, .jmp_172C		; any 3 movement frames, change animation
 .jmp_1716
-	ld hl, $C203
+	ld hl, wAnimIndex
 	ld a, [hl]
 	cp a, $18				; crouching Super Mario
 	jr z, .jmp_172C
@@ -3545,17 +3545,17 @@ Jmp_1765:: ; 1765
 	pop de
 	ld hl, wMarioPosY			; Y pos
 	ldi a, [hl]
-	add a, $10
+	add a, 16
 	ld [de], a
 	ldh a, [hScrollX]
 	ld b, a
 	ldh a, [$FFAE]
 	sub b
-	add a, $08
+	add a, 8
 	ldi [hl], a
 	inc l
 	ld [hl], $80
-	ld a, $09
+	ld a, STATE_9
 	ldh [hGameState], a		; go down pipe
 	ld a, [wInvincibilityTimer]
 	and a
@@ -3568,7 +3568,7 @@ Jmp_1765:: ; 1765
 
 ; called every frame?
 Call_17BC:: ; 17BC
-	ld hl, $C207			; jump status
+	ld hl, wJumpStatus			; jump status
 	ld a, [hl]
 	cp a, $01
 	ret z
@@ -3593,7 +3593,7 @@ Call_17BC:: ; 17BC
 	ld b, $04
 	cp a, $04
 	jr nz, .jmp_17F5
-	ld a, [$C207]			; jump status
+	ld a, [wJumpStatus]			; jump status
 	and a
 	jr nz, .jmp_17F5
 	ld b, $08
@@ -3605,7 +3605,7 @@ Call_17BC:: ; 17BC
 	cp a, $60
 	jr nc, .jmp_181E
 .jmp_1801
-	ld hl, $C207
+	ld hl, wJumpStatus
 	ld a, [hl]
 	cp a, $02
 	ret z					; return if descending
@@ -3613,7 +3613,7 @@ Call_17BC:: ; 17BC
 	inc [hl]
 	inc [hl]
 	inc [hl]				; falling without having jumped
-	ld hl, $C20A
+	ld hl, wMarioOnGround
 	ld [hl], 0				; Mario not on ground
 	ld a, [$C20E]
 	and a
@@ -3673,7 +3673,7 @@ Jmp_185D
 	or a, $06				; set   0000 0110
 	ld [hl], a
 	xor a
-	ld hl, $C207			; jump status
+	ld hl, wJumpStatus			; jump status
 	ldi [hl], a				; C207 jump status
 	ldi [hl], a				; C208 
 	ldi [hl], a				; C209
@@ -3861,7 +3861,7 @@ Jmp_185D
 	jr .jmp_1937
 
 .call_198C
-	ld a, [$C207]			; jump status
+	ld a, [wJumpStatus]			; jump status
 	cp a, $01				; ascending
 	ret nz
 	ld hl, wMarioPosY
@@ -3899,7 +3899,7 @@ Jmp_185D
 	cp a, $80
 	jp z, .jmp_1888
 	ld a, $02
-	ld [$C207], a
+	ld [wJumpStatus], a
 	ld a, $07
 	ld [$DFE0], a			; bump
 	ret
@@ -3972,7 +3972,7 @@ Jmp_185D
 	ld de, $0050
 	call AddScore
 	ld a, $02
-	ld [$C207], a
+	ld [wJumpStatus], a
 	ret
 
 .jmp_1A57
@@ -4056,7 +4056,7 @@ Call_1AAD:: ; 1AAD
 	ldh a, [hSuperStatus]
 	cp a, $02				; super mario
 	jr nz, .checkSide
-	ld a, [$C203]			; animation index
+	ld a, [wAnimIndex]		; animation index
 	cp a, $18				; crouching mario
 	jr z, .checkSide
 	ld de, $0702			; E = 2, check lower and upper side
@@ -4156,16 +4156,16 @@ Jmp_1B45:: ; 1B45
 	xor a
 	ldh [hSuperStatus], a
 .jmp_1B52
-	ld a, [$C203]		; animation index
+	ld a, [wAnimIndex]		; animation index
 	and b
-	ld [$C203], a
+	ld [wAnimIndex], a
 	ld b, a
 	and a, $0F
 	cp a, $0A
 	jr nc, .jmp_1B66	; jmp if animation index >= 0A, which is airplane, sub stuff
 	ld a, b
 	and a, $F0
-	ld [$C203], a
+	ld [wAnimIndex], a
 .jmp_1B66
 	ld a, $07			; end of level with music?
 	ldh [hGameState], a
@@ -4399,7 +4399,7 @@ GameState_39::	; 1C7C
 	db	"     game  over  "
 
 ; game over animation and wait until menu
-GameState_3A:: ; 1CE8
+HandleGameOver:: ; 1CE8
 	ld a, [wGameOverTimerExpired]
 	and a
 	call nz, GameState_38.resetToMenu
@@ -4468,11 +4468,11 @@ MoveMario::
 	jr nz, .jmp_1D49
 	ld [hl], $02		; at max momentum, go from 0 to 2?
 .jmp_1D49
-	ld de, $C207		; jump status. 00 on ground, 01 ascending, 02 descending
+	ld de, wJumpStatus		; jump status. 00 on ground, 01 ascending, 02 descending
 	ldh a, [hJoyHeld]
 	bit 7, a			; todo constants, down button
 	jr nz, .downButton
-.jmp_1D52
+.checkDirectionalKeys
 	bit 4, a			; right button
 	jr nz, .rightButton
 	bit 5, a			; left button
@@ -4486,7 +4486,7 @@ MoveMario::
 	dec [hl]
 	inc l				; C20B
 	ld a, [hl]
-	jr .jmp_1D52		; keep checking for left-right keys until C20C is 0
+	jr .checkDirectionalKeys		; keep checking for left-right keys until C20C is 0
 .jmp_1D6B
 	inc l				; C20D
 	ld [hl], 0
@@ -4494,14 +4494,14 @@ MoveMario::
 	and a
 	ret nz
 .jmp_1D71
-	ld a, [$C207]		; jump status
+	ld a, [wJumpStatus]		; jump status
 	and a
 	ret nz				; no animation in the air
-	ld hl, $C203		; animation index
+	ld hl, wAnimIndex		; animation index
 	ld a, [hl]
 	and a, $F0			; upper nibble is super status
 	ld [hl], a			; stand still animation
-	ld a, $01
+	ld a, 1
 	ld [$C20B], a		; animation frame counter
 	xor a
 	ld [$C20E], a		; walking nor runnning
@@ -4515,7 +4515,7 @@ MoveMario::
 	and a
 	jr nz, .skipCrouch	; cannot crouch when jumping
 	ld a, $18
-	ld [$C203], a		; crouching mario, hidden daisy
+	ld [wAnimIndex], a		; crouching mario, hidden daisy
 	ldh a, [hJoyHeld]
 	and a, $30			; test bits left and right button
 	jr nz, .jmp_1DA6
@@ -4524,7 +4524,7 @@ MoveMario::
 	jr z, .jmp_1DA6
 .skipCrouch
 	pop af
-	jr .jmp_1D52		; neither left nor right are being held
+	jr .checkDirectionalKeys	; neither left nor right are being held
 .jmp_1DA6
 	xor a				; no stopping animation going into crouch?
 	ld [$C20C], a		; speed?
@@ -4548,13 +4548,13 @@ MoveMario::
 	ldh a, [hJoyHeld]
 	bit 4, a			; right
 	jr z, .jmp_1DE4
-	ld a, [$C203]		; animation index
+	ld a, [wAnimIndex]		; animation index
 	cp a, $18			; crouching
 	jr nz, .jmp_1DD8
-	ld a, [$C203]		; why
+	ld a, [wAnimIndex]		; why
 	and a, $F0
 	or a, $01
-	ld [$C203], a		; first animation?
+	ld [wAnimIndex], a		; first animation?
 .jmp_1DD8
 	ld hl, $C20C		; ...
 	ld a, [hl]
@@ -4587,7 +4587,7 @@ MoveMario::
 	call ScrollEnemiesByB
 	ld hl, $C001		; projectile X positions
 	ld de, $0004		; 4 bytes per object
-	ld c, $03			; 3 projectiles
+	ld c, 3				; 3 projectiles
 .shiftProjectiles		; todo name
 	ld a, [hl]
 	sub b
@@ -4627,10 +4627,10 @@ MoveMario::
 	ld [hl], $01		; reverse dir?
 	dec l
 	ld [hl], $08		; C20C speed? momentum?
-	ld a, [$C207]		; jump status
+	ld a, [wJumpStatus]		; jump status
 	and a
 	ret nz				; nz if in air
-	ld hl, $C203		; animation
+	ld hl, wAnimIndex		; animation
 	ld a, [hl]
 	and a, $F0
 	or a, $05			; reversing animation
@@ -4652,13 +4652,13 @@ MoveMario::
 	ldh a, [hJoyHeld]
 	bit 5, a			; todo left button
 	jr z, .jmp_1E97
-	ld a, [$C203]
+	ld a, [wAnimIndex]
 	cp a, $18			; crouching
 	jr nz, .jmp_1E8B
-	ld a, [$C203]
+	ld a, [wAnimIndex]
 	and a, $F0
 	or a, $01
-	ld [$C203], a
+	ld [wAnimIndex], a
 .jmp_1E8B
 	ld hl, $C20C		; speed?
 	ld a, [hl]
@@ -4720,15 +4720,15 @@ ClearSprites:: ; 1ED4
 	push hl
 	push bc
 	push de
-	ld hl, wOAMBuffer + $7 * 4
-	ld b, $D * 4
+	ld hl, wOAMBuffer + 7 * 4
+	ld b, 13 * 4
 	xor a
 .clearLoop
 	ldi [hl], a
 	dec b
 	jr nz, .clearLoop
-	ld hl, wOAMBuffer + 0
-	ld b, $0B			; 2 objects and 3/4th of one ? Bug?
+	ld hl, wOAMBuffer
+	ld b, 11		; 2 objects and 3/4th of one ? Bug?
 .clearLoop2
 	ldi [hl], a
 	dec b
@@ -4752,12 +4752,12 @@ ClearSprites:: ; 1ED4
 
 Call_1F03:: ; 1F03
 	ldh a, [hFrameCounter]
-	and a, $03
+	and a, 3
 	ret nz				; every 4 frames
 	ld a, [wInvincibilityTimer]
 	and a
 	ret z
-	cp a, $01
+	cp a, 1
 	jr z, .endOfInvincibility
 	dec a
 	ld [wInvincibilityTimer], a
@@ -4776,7 +4776,7 @@ Call_1F03:: ; 1F03
 
 ; called every frame in non autoscroll levels
 Call_1F2D:: ; 1F2D
-	ld b, $01			; just one superball?
+	ld b, 1				; just one superball?
 	ld hl, $FFA9		; projectiles at A9, AA and AB?
 	ld de, wOAMBuffer + 1 ; objects 0, X position
 .superballLoop
@@ -4818,7 +4818,7 @@ Call_1F2D:: ; 1F2D
 	jr .enemyCollision
 
 .detectCollisionRight
-	add a, $03			; check collision a little in front
+	add a, 3			; check collision a little in front
 	push af
 	dec e				; e is now the Y coord of the object
 	ld a, [de]
@@ -4839,7 +4839,7 @@ Call_1F2D:: ; 1F2D
 	ld [de], a
 	cp a, $10
 	jr c, .removeSuperball		; c if out of bounds
-	sub a, $01
+	sub a, 1
 	ldh [$FFAD], a				; check collision uo
 	inc e
 	ld a, [de]
@@ -4863,7 +4863,7 @@ Call_1F2D:: ; 1F2D
 	ld [de], a
 	cp a, $A8				; todo screen width and such
 	jr nc, .removeSuperball	; nc if out of bounds
-	add a, $04				; check collision down
+	add a, 4				; check collision down
 	ldh [$FFAD], a
 	inc e
 	ld a, [de]
@@ -4880,9 +4880,9 @@ Call_1F2D:: ; 1F2D
 	dec a
 	dec a
 	ld [de], a
-	cp a, $04
+	cp a, 4
 	jr c, .removeSuperball		; if out of bounds
-	sub a, $02			; detect collision to the left
+	sub a, 2			; detect collision to the left
 	push af
 	dec e
 	ld a, [de]
@@ -4977,13 +4977,13 @@ Call_200A::
 	ldh [$FF9B], a		; more new variables
 	ld a, [de]
 	ldh [$FFA2], a		; de is still X pos of superball
-	add a, $04			; X pos + 4
+	add a, 4			; X pos + 4
 	ldh [$FF8F], a
 	dec e				; y pos
 	ld a, [de]
 	ldh [$FFA0], a
 	ld a, [de]
-	add a, $03			; y pos + 3
+	add a, 3			; y pos + 3
 	ldh [$FFA1], a		; FF8F FFA0 FFA1 FFA2, some sort of hitbox?
 	pop hl
 	push hl
@@ -5009,7 +5009,7 @@ Call_200A::
 	jr z, .popRegsAndNextEnemy
 	push af
 	ld a, [de]
-	sub a, $08
+	sub a, 8
 	ldh [hFloatyY], a		; todo comment
 	inc e
 	ld a, [de]
@@ -5017,7 +5017,7 @@ Call_200A::
 	pop af
 	cp a, $FF
 	jr nz, .jmp_2083
-	ld a, $03
+	ld a, 3
 	ld [$DFE0], a			; enemy dieing sound effect
 	ldh a, [$FF9E]
 	ldh [hFloatyControl], a
@@ -5051,7 +5051,7 @@ Call_200A::
 	ld a, [hl]
 	and a
 	jr nz, .out
-	ld [hl], $01
+	ld [hl], 1
 	inc l					; FFEF
 	ld [hl], d
 	inc l					; FFF0
@@ -5070,7 +5070,7 @@ Call_200A::
 .jmp_20C1
 	ld hl, $C210			; non player entity?
 	ld de, $0010
-	ld b, $04
+	ld b, 4
 .jmp_20C9
 	push hl
 	ld [hl], $00
@@ -5087,20 +5087,20 @@ Call_200A::
 	inc l
 	inc l
 	inc l
-	ld [hl], $01
+	ld [hl], 1
 	inc l
-	ld [hl], $07
+	ld [hl], 7
 	pop hl
 	add hl, de
 	dec b
 	jr nz, .jmp_20C9
 	ld hl, $C222
 	ld a, [hl]
-	sub a, $04
+	sub a, 4
 	ld [hl], a
 	ld hl, $C242
 	ld a, [hl]
-	sub a, $04
+	sub a, 4
 	ld [hl], a
 	ld hl, $C238
 	ld [hl], $0B
@@ -5110,7 +5110,7 @@ Call_200A::
 	ldh [$FFF3], a
 	ld de, $0050
 	call AddScore
-	ld a, $02
+	ld a, 2
 	ld [$DFF8], a
 .out
 	pop af
@@ -5145,7 +5145,7 @@ Data_216D::	 ; jumping "parabola"?
 	db $04, $04, $03, $03, $02, $02, $02, $02, $02, $02, $02, $02, $02, $01, $01, $01, $01, $01, $01, $01, $00, $01, $00, $01, $00, $00, $7F
 
 Jump_2188:: ; 2188
-	ld a, $03
+	ld a, 3
 	ldh [$FFEA], a		; has to do with rendering
 	ldh a, [hScrollX]
 	ld b, a
@@ -5161,12 +5161,12 @@ LoadColumns:: ; 2198
 	and a
 	jr nz, Jump_2188
 	ldh a, [hScrollX]
-	and a, $08
+	and a, 8
 	ld hl, $FFA3		; switches between 0 and 8
 	cp [hl]
 	ret nz
 	ld a, [hl]
-	xor a, $08
+	xor a, 8
 	ld [hl], a
 	and a
 	jr nz, LoadNextColumn
@@ -5275,7 +5275,7 @@ LoadNextColumn::	; 21B1
 	ldh [hColumnPointerLo], a		; save a pointer to the next column
 	ldh a, [hColumnIndex]
 	inc a
-	cp a, $14			; 20 columns per screen?
+	cp a, SCRN_X_B	; 20 columns per screen?
 	jr nz, .screenNotFinished
 	ld hl, hScreenIndex	; next block
 	inc [hl]
@@ -5301,7 +5301,7 @@ LoadNextColumn::	; 21B1
 ; draw a column in the tile map
 DrawColumn:: ; 2258
 	ldh a, [$FFEA]		; 01 if a new column needs to be loaded, 03 if we're 
-	cp a, $01			; still standing on that spot, but we don't need a new 
+	cp a, 1				; still standing on that spot, but we don't need a new 
 	ret nz				; one, 00 otherwise. or more complicated...
 	ldh a, [$FFE9]		; FFE9 holds the lower byte of the address of the first
 	ld l, a				; column not yet loaded. Upper byte is always 98
@@ -5323,30 +5323,30 @@ DrawColumn:: ; 2258
 	pop hl
 	ld a, [de]
 	ld [hl], a			; set the tile in the tilemap
-	cp a, $70			; pipe opening
+	cp a, BLOCK_PIPE_OPENING	; pipe opening
 	jr nz, .notPipe
 	call Call_22FD
 	jr .incrementRow
 
 .notPipe
-	cp a, $80			; breakable block
+	cp a, BLOCK_BREAKABLE	; breakable block
 	jr nz, .notBreakableBlock
 	call Call_2363
 	jr .incrementRow
 
 .notBreakableBlock
-	cp a, $5F			; hidden block
+	cp a, BLOCK_HIDDEN	; hidden block
 	jr nz, .notHiddenBlock
 	call Call_2363
 	jr .incrementRow
 
 .notHiddenBlock
-	cp a, $81			; coin block
+	cp a, BLOCK_COIN	; coin block
 	call z, Call_2363
 .incrementRow
 	inc e
 	push de
-	ld de, $0020		; todo screenwidth or w/e
+	ld de, SCRN_VX_B	; todo screenwidth or w/e
 	add hl, de
 	pop de
 	dec b
@@ -5560,12 +5560,12 @@ GameState_0D::
     call $515E
     call Call_1F03
     ldh a, [$AC]
-    and $03
+    and 3
     ret nz
 
-    ld a, [$C203]
-    xor $01
-    ld [$C203], a
+    ld a, [wAnimIndex]
+    xor 1
+    ld [wAnimIndex], a
     ret
 
 AnimateBackground:: ; 2401
@@ -5576,7 +5576,7 @@ AnimateBackground:: ; 2401
 	cp a, $0D			; For some reason, the background is only animated
 	ret nc				; in gamestates < 0D. This is mostly normal gameplay
 	ldh a, [hFrameCounter]
-	and a, $07			; Animate every 8 frames
+	and a, 7			; Animate every 8 frames
 	ret nz
 	ldh a, [hFrameCounter]
 	bit 3, a
@@ -5748,7 +5748,7 @@ Call_24EF:: ; 24EF
 	ld a, [hl]
 	ldh [$FFC7], a	; flags
 
-Jmp_250B
+Jmp_250B:
 	xor a
 	ldh [$FFC4], a
 	ldh [hMarioState], a
@@ -5813,7 +5813,7 @@ DrawEnemies::; 2568
 	ld c, $00			; C points to the slot currently being drawn
 .drawEnemySlot
 	ld a, [wObjectsDrawn]
-	cp a, $14			; the upper 20 objects are reserved for enemies
+	cp a, 20			; the upper 20 objects are reserved for enemies
 	ret nc
 	push bc
 	ld a, c
@@ -5829,7 +5829,7 @@ DrawEnemies::; 2568
 	cp a, $E0			; the screen is A0 pixels wide. Due to wraparound,
 	jr c, .checkYBound	; 00 → FF, this also takes care of enemies leaving
 .enemyOutOfBounds		; stage left
-	ld a, $FF			; remove enemy
+	ld a, SCRN_VX - 1	; remove enemy
 	ldh [$FFC0], a
 	ld a, c
 	call CopyBufferToEnemySlot
@@ -5857,7 +5857,7 @@ DrawEnemies::; 2568
 	ld a, l
 	cp a, $A0				; maximum 10 enemy slots
 	jp nc, .retNC			; why not a RET NC? Bug
-	ld a, $B4				; 180 px is offscreen. Just using 0 would suffice
+	ld a, 180				; 180 px is offscreen. Just using 0 would suffice
 	ld [hl], a
 	inc hl
 	inc hl
@@ -6001,7 +6001,7 @@ Call_2648:: ; 2648
 	ldh a, [$FFC7]			; bit 1 set if gravity works on it?
 	bit 1, a
 	jr z, .jmp_2692
-	call Call_2BBB			; check collision one tile down?
+	call CheckCollisionWithLowerTile			; check collision one tile down?
 	jr nc, .jmp_268C		; no carry means the tile is solid
 	ldh a, [$FFC2]			; Y pos
 	inc a					; fall down
@@ -6515,7 +6515,7 @@ Call_2648:: ; 2648
 	jr .jmp_29FD
 
 .jmp_29C1
-	call Call_2BBB		; collision one tile down
+	call CheckCollisionWithLowerTile		; collision one tile down
 	jr nc, .jmp_29E0
 .jmp_29C6
 	ldh a, [$FFC1]
@@ -6891,7 +6891,7 @@ Call_2B9A:: ; 2B9A
 	ret
 
 ; checks collision one tile lower
-Call_2BBB:: ; 2BBB
+CheckCollisionWithLowerTile:: ; 2BBB
 	ldh a, [$FFC3]
 	ld c, a
 	ldh a, [hScrollX]
@@ -6946,16 +6946,16 @@ Call_2BFE:: ; 2BFE
 	ld c, a
 	ldh a, [hScrollX]
 	add c
-	add a, $5
+	add a, 5
 	ld c, a
 	ldh a, [$FFCA]
 	and a, $70
 	rrca
 	add c
-	sub a, $8		; to compensate for offset coordinates (Y-16, X-8)? todo
+	sub a, 8		; to compensate for offset coordinates (Y-16, X-8)? todo
 	ldh [$FFAE], a
 	ldh a, [$FFC2]
-	add a, $8
+	add a, 8
 	ldh [$FFAD], a
 	call LookupTile
 	cp a, $5F
@@ -6970,7 +6970,7 @@ Call_2C21:: ; 2C21
 	ld c, a
 	ldh a, [hScrollX]
 	add c
-	add a, $04
+	add a, 4
 	ldh [$FFAE], a
 	ld c, a
 	ldh a, [hMarioState]
@@ -6984,7 +6984,7 @@ Call_2C21:: ; 2C21
 	ldh [$FFAE], a
 .jmp_2C3A
 	ldh a, [$FFCA]
-	and a, $07			; height
+	and a, 7			; height
 	dec a
 	swap a
 	rrca				; multiply by 8
@@ -7005,10 +7005,10 @@ Call_2C52:: ; 2C52
 	ld c, a
 	ldh a, [hScrollX]
 	add c
-	add a, $03
+	add a, 3
 	ldh [$FFAE], a
 	ldh a, [$FFCA]
-	and a, $07
+	and a, 7
 	dec a
 	swap a
 	rrca
@@ -7029,16 +7029,16 @@ Call_2C74:: ; 2C74
 	ld c, a
 	ldh a, [hScrollX]
 	add c
-	add a, $05
+	add a, 5
 	ld c, a
 	ldh a, [$FFCA]
 	and a, $70
 	rrca
 	sub c
-	sub a, $08
+	sub a, 8
 	ldh [$FFAE], a
 	ldh a, [$FFCA]
-	and a, $07
+	and a, 7
 	dec a
 	swap a
 	rrca
@@ -7178,7 +7178,7 @@ INCBIN "baserom.gb", $3564, $3D1A - $3564
 
 ; called at level start, is some sort of init
 Call_3D1A; 3D1A
-	ld hl, $C030	; TODO ? wOAMBuffer + $30 ? used for "dynamic" sprites?
+	ld hl, wOAMBuffer + $30	; TODO ? wOAMBuffer + $30 ? used for "dynamic" sprites?
 	ld b, $20
 	xor a
 .jmp_3D20
@@ -7190,7 +7190,7 @@ Call_3D1A; 3D1A
 	ldi [hl], a		; DA00 - Time hundredths	
 	xor a
 	ldi [hl], a		; DA01 - Time ones and tens
-	ld a, $04
+	ld a, 4
 	ldi [hl], a		; DA02 - Time hundreds
 	call DisplayTimer.printTimer	; TODO
 	ld a, $20		; Some sort of timers? For "dynamic" sprites?
@@ -7206,7 +7206,7 @@ Call_3D1A; 3D1A
 	ld a, $30		; Cycles between the three "timers"
 	ldi [hl], a		; DA0B
 	xor a
-	ld b, $09
+	ld b, 9
 .loop
 	ldi [hl], a		; DA0C - DA14
 	dec b
@@ -7245,7 +7245,7 @@ DisplayTimer:: ; 3D6A ; TODO better name?
 	and a
 	ret nz
 	ldh a, [hGameState]
-	cp a, $12			; game states > $12 don't make the timer count TODO
+	cp a, STATE_18			; game states > $12 don't make the timer count TODO
 	ret nc
 	ld a, [wGameTimer]	; Timer subdivision
 	cp a, $28			; 40 frames per time unit (why not 60?)
@@ -7254,7 +7254,7 @@ DisplayTimer:: ; 3D6A ; TODO better name?
 	ret
 
 .printTimer ; 3D7E
-	ld de, vBGMap0 + $33 ; $9833		; TODO VRAM
+	ld de, vBGMap0 + SCRN_VX_B + 19 ; $9833		; TODO VRAM
 	ld a, [wGameTimer + 1]	; Ones and Tens
 	ld b, a
 	and a, $0F
