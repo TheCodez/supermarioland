@@ -1,6 +1,7 @@
 INCLUDE "charmap.asm"
 INCLUDE "gbhw.asm"
 INCLUDE "hram.asm"
+INCLUDE "vram.asm"
 
 ; todo replace with level data
 SECTION "bank 2", ROMX, BANK[2]
@@ -17,7 +18,7 @@ LevelPointersBank2:: ; 2:4000
 	dw $6192
 	dw $61B7
 	dw $61DA
-	dw Data_002_6190	; Start Menu
+	dw MenuLevelData	; Start Menu
 
 LevelEnemyPointersBank2:: ; 2:401A
 	dw $6002	; 1-1
@@ -33,25 +34,44 @@ LevelEnemyPointersBank2:: ; 2:401A
 	dw $6073
 	dw $60FE
 
+CommonTiles1::
 INCBIN "gfx/commonTiles1.2bpp"
+CommonTiles1End:
+
+EnemiesWorld1::
 INCBIN "gfx/enemiesWorld1.2bpp"
+EnemiesWorld1End:
+
+CommonTiles2::
 INCBIN "gfx/commonTiles2.2bpp"
+CommonTiles2End:
+
+BackgroundWorld1::
 INCBIN "gfx/backgroundWorld1.2bpp"
+BackgroundWorld1End:
+
+CommonTiles3::
 INCBIN "gfx/commonTiles3.2bpp"
+CommonTiles3End:
 
 ; 5832
 ; Bonus game GameState routines
 ; No idea why this level of indirection
 HandleBonusGameMarioSprites:: ; 5832
 	jp _HandleBonusGameMarioSprites
+
 HandleBonusGame:: ; 5835
 	jp _GameState_15
+
 GameState_17:: ; 5838
 	jp _GameState_17
+
 GameState_18:: ; 583B
 	jp _GameState_18
+
 GameState_19:: ; 583E
 	jp _GameState_19
+
 GameState_1A:: ; 5841
 	jp _GameState_1A
 
@@ -452,7 +472,7 @@ _HandleBonusGameMarioSprites:: ; 5A72
 	xor a
 	ld d, a
 	ldh a, [hSuperStatus]
-	cp a, $02
+	cp a, 2
 	jr nz, .jmp_5A93
 	ld a, $20
 	ld d, a
@@ -463,27 +483,27 @@ _HandleBonusGameMarioSprites:: ; 5A72
 	ld a, b
 	ldi [hl], a		; Y pos
 	ld a, c
-	add a, $08		; one to the right
+	add a, 8		; one to the right
 	ldi [hl], a		; X pos
 	ld a, d
 	inc a
 	ldi [hl], a		; tile number
 	inc l			; no attributes
 	ld a, b
-	add a, $08		; one down
+	add a, 8		; one down
 	ld b, a
 	ldi [hl], a		; Y pos
 	ld a, c
 	ldi [hl], a		; X pos
 	ld a, d
-	add a, $10
+	add a, 16
 	ld d, a
 	ldi [hl], a		; tile number
 	inc l			; no attributes
 	ld a, b
 	ldi [hl], a		; Y pos
 	ld a, c
-	add a, $08		; one to the right
+	add a, 8		; one to the right
 	ldi [hl], a		; X pos
 	inc d
 	ld a, d
@@ -512,7 +532,7 @@ _GameState_15:: ; 5ABB
 	bit 0, a
 	jr z, .jmp_5B07
 	ld hl, wOAMBuffer + 4 * $C
-	ld b, $04
+	ld b, 4
 	ld a, [hl]		; Y pos
 	cp a, $80		; bottom floor
 	jr z, .jmp_5AF1
@@ -528,7 +548,7 @@ _GameState_15:: ; 5ABB
 	jr .jmp_5B07
 
 .jmp_5AF1
-	ld b, $02		; 2 bottom objects
+	ld b, 2			; 2 bottom objects
 	ld a, $38		; top floor
 .loop2
 	ldi [hl], a
@@ -537,7 +557,7 @@ _GameState_15:: ; 5ABB
 	inc l
 	dec b
 	jr nz, .loop2
-	ld b, $02		; 2 top objects
+	ld b, 2			; 2 top objects
 	ld a, $40
 .loop3
 	ldi [hl], a
@@ -547,7 +567,7 @@ _GameState_15:: ; 5ABB
 	dec b
 	jr nz, .loop3
 .jmp_5B07
-	ld hl, $98EA	; ladder top floor position
+	ld hl, vBGMap0 + $EA ; $98EA	; ladder top floor position
 	ld bc, $0060	; 3 screen widths
 	ld de, $DA27
 	ld a, [de]
@@ -1257,7 +1277,7 @@ Data_002_5F15::
 
 SECTION "bank 2 levels", ROMX[$6190], BANK[2]
 ;INCBIN "baserom.gb", $A190, $791A - $6190
-Data_002_6190::
+MenuLevelData::
     db   $15, $5F, $BE, $62, $17, $68, $C7, $68   ; $6190
     db   $BE, $62, $00, $62, $BE, $62, $81, $63   ; $6198
     db   $5F, $64, $BE, $62, $0D, $65, $BE, $62   ; $61A0
@@ -2013,6 +2033,10 @@ Data_002_6190::
     db   $00, $00, $00, $00, $00, $10, $00, $00   ; $7910
     db   $00, $00                                 ; $7918
 
-
+MenuTiles1::
 INCBIN "gfx/menuTiles1.2bpp"
+MenuTiles1End:
+
+MenuTiles2::
 INCBIN "gfx/menuTiles2.2bpp"
+MenuTiles2End:

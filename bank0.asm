@@ -387,14 +387,14 @@ Init::	; 0185
 	dw GameState_05  ; 0x05 ✓ Explosion/Score counting down
 	dw HandleLevelEnd ; 0x06 ✓ End of level
 	dw HandleLevelEndFX ; 0x07 ✓ End of level gate, music
-	dw $0D49 ;GameState_08 not working 0x08 ✓ Increment Level, load tiles
+	dw GameState_08.entryPoint ; 0x08 ✓ Increment Level, load tiles
 	dw HandleGoingDownPipe ; 0x09 ✓ Going down a pipe
 	dw HandleUndergroundWarping ; 0x0A ✓ Warping to underground?
 	dw GameState_0B ; 0x0B ✓ Going right in a pipe
 	dw GameState_0C ; 0x0C ✓ Going up out of a pipe
 	dw HandleAutoScrollLevel ; 0x0D   Auto scrolling level
 	dw InitMenu ; 0x0E ✓ Init menu 14
-	dw $04C3 ; GameState_0F 0x0F ✓ Start menu
+	dw HandleStartMenu.entryPoint ; 0x0F ✓ Start menu
 	dw GameState_10 ; 0x10 ✓ Unused? todo
 	dw HandleStartLevel ; 0x11 ✓ Level start
 	dw HandleGotoBonusGame ; 0x12 ✓ Go to Bonus game
@@ -430,7 +430,7 @@ Init::	; 0185
 	dw HandleAirplaneTakingOff ; 0x30 ✓ Airplane taking off
 	dw HandleAirplaneMovingForward ; 0x31 ✓ Airplane moving forward
 	dw HandleAirplaneLeavingHanger ; 0x32 ✓ Airplane leaving hanger?
-	dw $13F0 ; GameState_33 0x33 ✓ In between two credits?
+	dw GameState_33.entryPoint ; 0x33 ✓ In between two credits?
 	dw GameState_34 ; 0x34 ✓ Credits coming up
 	dw GameState_35 ; 0x35 ✓ Credits stand still
 	dw GameState_36 ; 0x36 ✓ Credits leave
@@ -440,7 +440,7 @@ Init::	; 0185
 	dw HandleGameOver ; 0x3A ✓ Game over
 	dw GameState_3B ; 0x3B ✓ Pre time up
 	dw GameState_3C ; 0x3C ✓ Time up
-	dw $06BB ; 0x3D  
+	dw HandleGamePlay.ret ; 0x3D  
  
 ;322
 InitMenu::
@@ -463,13 +463,13 @@ InitMenu::
 	ldi [hl], a
 	ld a, [wWinCount]	; restore from Work RAM, possibly overwritten for demo
 	ldh [hWinCount], a	; Expert Mode activated when non zero
-	ld hl, $791A	; TODO give name
+	ld hl, MenuTiles1
 	ld de, vChars2 + $300 ; $9300
-	ld bc, $0500
+	ld bc, MenuTiles1End - MenuTiles1
 	call CopyData	; loads tiles for the menu
-	ld hl, $7E1A
+	ld hl, MenuTiles2
 	ld de, vChars1
-	ld bc, $0170
+	ld bc, MenuTiles2End - MenuTiles2
 	call CopyData	; and more tiles
 	ld hl, $4862
 	ldh a, [hWinCount]
@@ -488,7 +488,7 @@ InitMenu::
 	ld de, vChars0
 	ld bc, $02A0
 	call CopyData	; same, but to the other tile data bank
-	call Call_5CF
+	call ClearBGMap0
 	xor a
 	ldh [hScreenIndex], a
 	ldh a, [hLevelIndex]
@@ -500,13 +500,13 @@ InitMenu::
 	ldh [hLevelIndex], a
 	ld a, $3C
 	ld hl, vBGMap0		; tile map
-	call FillStartMenuTopRow	; usually hidden by the HUD
+	call FillStartMenuTopRow		; usually hidden by the HUD
 	ld hl, vBGMap0 + 4 ; $9804
 	ld [hl], $94
 	ld hl, vBGMap0 + SCRN_VX_B + 2 ; $9822
 	ld [hl], $95
 	inc l
-	ld [hl], $96			; Mario's head
+	ld [hl], $96					; Mario's head
 	inc l
 	ld [hl], $8C
 	ld hl, vBGMap0 + SCRN_VX_B + 15 ; $982F		; Clouds in top right
@@ -601,10 +601,10 @@ InitMenu::
 
 ContinueText::
 	db "continue *"
-ContinueTextEnd::
+ContinueTextEnd:
 
 ; 450
-GameState_0F::
+HandleStartMenu::
 .startPressed
 	ld a, [wOAMBuffer + 4]
 	cp a, $78	; usual start Y position
@@ -804,7 +804,7 @@ HandleStartLevel::	; 576
 	ldh [hCoins], a
 .jmp_58B
 	call PrepareTiles	; todo
-	call Call_5CF
+	call ClearBGMap0
 	ld hl, vBGMap1
 	ld b, $5F
 	ld a, " "
@@ -839,9 +839,9 @@ HandleStartLevel::	; 576
 GameState_10:: ; 5CE Huh? Unused?
 	ret
 
-Call_5CF:: ; 05CF  What a waste
+ClearBGMap0:: ; 05CF
 	ld hl, vBGMap0 + 31 * SCRN_VX_B + 31 ; $9BFF
-	ld bc, $0400
+	ld bc, SCRN_VX_B * SCRN_VY_B
 
 EraseTileMap:: ; 5D5
 .loop
@@ -873,7 +873,7 @@ PrepareTiles::	; the three upper banks have tiles at the same location?
 	ld de, vChars2
 	ld bc, $0800
 	call CopyData
-	ld hl, $4032
+	ld hl, CommonTiles1
 	ld de, vChars0
 	ld bc, $1000
 	call CopyData
@@ -965,6 +965,7 @@ HandleGamePlay::	; 627
 
     dec [hl]
     call Call_2113
+.ret
     ret
 
 ; 06BC
@@ -1244,25 +1245,25 @@ EntityCollision:: ; 84E
 	ld a, [wMarioPosY]		; Mario Y pos
 	ld b, a
 	ldh a, [hSuperStatus]
-	cp a, $02
+	cp a, 2
 	jr nz, .jmp_88E
 	ld a, [wAnimIndex]
 	cp a, $18
 	jr z, .jmp_88E
-	ld a, -$2
+	ld a, -2
 	add b
 	ld b, a
 .jmp_88E
 	ld a, b
 	ldh [$FFA0], a		; bounding box top?
 	ld a, [wMarioPosY]     ; Mario Y pos
-	add a, $6
+	add a, 6
 	ldh [$FFA1], a		; bounding box bottom?
 	ld a, [wMarioPosX]		; Mario X pos
 	ld b, a
-	sub a, $03
+	sub a, 3
 	ldh [$FFA2], a		; bounding box left?
-	ld a, $02
+	ld a, 2
 	add b
 	ldh [$FF8F], a		; BB right
 	pop hl
@@ -4192,13 +4193,13 @@ BlockCollision:: ; 1B86
 	call nz, AddCoin
 	ld hl, $FFEE		; source of the coin? :/
 	ld a, [hl]
-	cp a, $01			; breakable block which will break
+	cp a, 1			; breakable block which will break
 	jr z, .jmp_1BBA
-	cp a, $02			; breakable/coin block which will bounce
+	cp a, 2			; breakable/coin block which will bounce
 	jp z, .jmp_1BF7		; why is this a JP? Bug?
 	cp a, $C0			; floating coin?
 	jr z, .jmp_1BBA
-	cp a, $04			; bounced block which will cease to be a sprite
+	cp a, 4			; bounced block which will cease to be a sprite
 	ret nz
 	ld [hl], $00
 	inc l				; hl ← FFEF
@@ -4208,9 +4209,9 @@ BlockCollision:: ; 1B86
 	ld a, [wOAMBuffer + $2E]		; coin block OAM sprite 3rd byte?
 	cp a, $82			; normal breakable block?
 	jr z, .placeBlockBackInBG
-	cp a, $81			; coin block
+	cp a, BLOCK_COIN			; coin block
 	call z, AddCoin
-	ld a, $7F			; dark block (used coinblock)
+	ld a, BLOCK_USED			; dark block (used coinblock)
 .placeBlockBackInBG
 	ld [de], a
 	ret
@@ -4346,9 +4347,9 @@ UpdateLives::
 	jr .displayUpdatedLives
 
 GameState_39::	; 1C7C
-	ld hl, vBGMap1			; todo window tile map?
-	ld de, .GameOverText
-	ld b, $11
+	ld hl, vBGMap1
+	ld de, GameOverText
+	ld b, GameOverTextEnd - GameOverText
 .loop
 	ld a, [de]
 	ld c, a
@@ -4376,11 +4377,12 @@ GameState_39::	; 1C7C
 	ld [wNumContinues], a
 	ld hl, wOAMBuffer
 	xor a
-	ld b, $A0
+	ld b, 160
 .clearOAM
 	ldi [hl], a
 	dec b
 	jr nz, .clearOAM
+
 	ld [wGameTimerExpiringFlag], a
 	ldh [rTMA], a
 	ld hl, rWY
@@ -4393,8 +4395,9 @@ GameState_39::	; 1C7C
 	inc [hl]				; 39 → 3A
 	ret
 
-.GameOverText:				
+GameOverText::				
 	db	"     game  over  "
+GameOverTextEnd:
 
 ; game over animation and wait until menu
 HandleGameOver:: ; 1CE8
@@ -4427,7 +4430,7 @@ GameState_3B:: ; 1CF0
 
 TimeUpText::
 	db " time up "
-TimeUpTextEnd::
+TimeUpTextEnd:
 
 ; time up. Run out frame timer
 GameState_3C:: ; 1D1D
@@ -4442,7 +4445,7 @@ GameState_3C:: ; 1D1D
 MoveMario::
 	ld hl, $C20D		; mario going left (20) or right (10), changing dir (01)??
 	ld a, [hl]
-	cp a, $01			; changing direction?
+	cp a, 1				; changing direction?
 	jr nz, .notReversing
 	dec l				; C20C, momentum?
 	ld a, [hl]
