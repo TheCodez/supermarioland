@@ -380,37 +380,37 @@ Init::	; 0185
 	ldh a, [hGameState]
 	rst $28		; Jump Table
 	dw HandleGamePlay ; 0x00   Normal gameplay
-	dw GameState_Dead ; 0x01 ✓ Dead?
-	dw GameState_02 ; 0x02 ✓ Reset to checkpoint
+	dw HandleDead ; 0x01 ✓ Dead?
+	dw ResetToCheckpoint ; 0x02 ✓ Reset to checkpoint
 	dw PrepareDeath ; 0x03 ✓ Pre dying
 	dw HandleDying ; 0x04 ✓ Dying animation
 	dw GameState_05  ; 0x05 ✓ Explosion/Score counting down
-	dw GameState_06 ; 0x06 ✓ End of level
-	dw GameState_07 ; 0x07 ✓ End of level gate, music
+	dw HandleLevelEnd ; 0x06 ✓ End of level
+	dw HandleLevelEndFX ; 0x07 ✓ End of level gate, music
 	dw $0D49 ;GameState_08 not working 0x08 ✓ Increment Level, load tiles
-	dw GameState_09 ; 0x09 ✓ Going down a pipe
-	dw GameState_0A ; 0x0A ✓ Warping to underground?
+	dw HandleGoingDownPipe ; 0x09 ✓ Going down a pipe
+	dw HandleUndergroundWarping ; 0x0A ✓ Warping to underground?
 	dw GameState_0B ; 0x0B ✓ Going right in a pipe
 	dw GameState_0C ; 0x0C ✓ Going up out of a pipe
-	dw GameState_0D ; 0x0D   Auto scrolling level
-	dw GameState_InitMenu ; 0x0E ✓ Init menu 14
+	dw HandleAutoScrollLevel ; 0x0D   Auto scrolling level
+	dw InitMenu ; 0x0E ✓ Init menu 14
 	dw $04C3 ; GameState_0F 0x0F ✓ Start menu
 	dw GameState_10 ; 0x10 ✓ Unused? todo
 	dw HandleStartLevel ; 0x11 ✓ Level start
-	dw GameState_12 ; 0x12 ✓ Go to Bonus game
-	dw GameState_13 ; 0x13 ✓ Entering Bonus game
-	dw GameState_SetupMarioSprite ; 0x14 ✓ Setup Mario sprite
-	dw GameState_15 ; 0x15 ✓ Bonus game
+	dw HandleGotoBonusGame ; 0x12 ✓ Go to Bonus game
+	dw HandleEnterBonusGame ; 0x13 ✓ Entering Bonus game
+	dw HandleBonusGameMarioSprites ; 0x14 ✓ Setup Mario sprite
+	dw HandleBonusGame ; 0x15 ✓ Bonus game
 	dw GameState_16 ; 0x16 ✓ Move the ladder
 	dw GameState_17 ; 0x17 ✓ Bonus game walking
 	dw GameState_18 ; 0x18 ✓ Bonus game descending ladder
 	dw GameState_19 ; 0x19 ✓ Bonus game ascending ladder
 	dw GameState_1A ; 0x1A ✓ Getting price
-	dw GameState_1B ; 0x1B ✓ Leaving Bonus game
+	dw HandleLeaveBonusGame ; 0x1B ✓ Leaving Bonus game
 	dw GameState_1C ; 0x1C ✓ Smth with the gate after a boss
 	dw GameState_1D ; 0x1D ✓
-	dw GameState_1E ; 0x1E ✓ Gate opening
-	dw GameState_1F ; 0x1F ✓ Gate open
+	dw HandleGateOpening ; 0x1E ✓ Gate opening
+	dw HandleGateOpen ; 0x1F ✓ Gate open
 	dw GameState_20 ; 0x20 ✓ Walk off button
 	dw GameState_21 ; 0x21 ✓ Mario offscreen
 	dw GameState_22 ; 0x22 ✓ Scroll to fake Daisy
@@ -428,14 +428,14 @@ Init::	; 0185
 	dw GameState_2E ; 0x2E ✓ Mario credits running
 	dw HandleEnterAirplane ; 0x2F ✓ Entering airplane
 	dw HandleAirplaneTakingOff ; 0x30 ✓ Airplane taking off
-	dw GameState_AirplaneMovingForward ; 0x31 ✓ Airplane moving forward
-	dw GameState_AirplaneLeavingHanger ; 0x32 ✓ Airplane leaving hanger?
+	dw HandleAirplaneMovingForward ; 0x31 ✓ Airplane moving forward
+	dw HandleAirplaneLeavingHanger ; 0x32 ✓ Airplane leaving hanger?
 	dw $13F0 ; GameState_33 0x33 ✓ In between two credits?
 	dw GameState_34 ; 0x34 ✓ Credits coming up
 	dw GameState_35 ; 0x35 ✓ Credits stand still
 	dw GameState_36 ; 0x36 ✓ Credits leave
 	dw GameState_37 ; 0x37 ✓ Airplane leaving
-	dw GameState_38 ; 0x38 ✓ THE END letters flying
+	dw HandleTheEnd ; 0x38 ✓ THE END letters flying
 	dw GameState_39 ; 0x39 ✓ Pre game over?
 	dw HandleGameOver ; 0x3A ✓ Game over
 	dw GameState_3B ; 0x3B ✓ Pre time up
@@ -443,17 +443,17 @@ Init::	; 0185
 	dw $06BB ; 0x3D  
  
 ;322
-GameState_InitMenu::
+InitMenu::
 	xor a
 	ldh [rLCDC], a	; Turn off LCD
 	di
 	ldh [hScrollX], a
 	ld hl, wOAMBuffer
 	ld b, $9F
-.ClearSpritesLoop
+.clearSpritesLoop
 	ldi [hl], a
 	dec b
-	jr nz, .ClearSpritesLoop
+	jr nz, .clearSpritesLoop
 	ldh [hSuperStatus], a
 	ld [wGameOverWindowEnabled], a
 	ld [wGameOverTimerExpired], a
@@ -464,7 +464,7 @@ GameState_InitMenu::
 	ld a, [wWinCount]	; restore from Work RAM, possibly overwritten for demo
 	ldh [hWinCount], a	; Expert Mode activated when non zero
 	ld hl, $791A	; TODO give name
-	ld de, $9300
+	ld de, vChars2 + $300 ; $9300
 	ld bc, $0500
 	call CopyData	; loads tiles for the menu
 	ld hl, $7E1A
@@ -501,15 +501,15 @@ GameState_InitMenu::
 	ld a, $3C
 	ld hl, vBGMap0		; tile map
 	call FillStartMenuTopRow	; usually hidden by the HUD
-	ld hl, vBGMap0 + $04 ; $9804
+	ld hl, vBGMap0 + 4 ; $9804
 	ld [hl], $94
-	ld hl, vBGMap0 + $22 ; $9822
+	ld hl, vBGMap0 + SCRN_VX_B + 2 ; $9822
 	ld [hl], $95
 	inc l
-	ld [hl], $96		; Mario's head
+	ld [hl], $96			; Mario's head
 	inc l
 	ld [hl], $8C
-	ld hl, vBGMap0 + $2F ; $982F		; Clouds in top right
+	ld hl, vBGMap0 + SCRN_VX_B + 15 ; $982F		; Clouds in top right
 	ld [hl], $3F
 	inc l
 	ld [hl], $4C
@@ -678,15 +678,15 @@ GameState_0F::
 .entryPoint::
 	ldh a, [hJoyPressed]
 	ld b, a
-	bit 3, b		; START button
+	bit START_BIT, b		; START button
 	jr nz, .startPressed
-	bit 2, b		; SELECT button
+	bit SELECT_BIT, b		; SELECT button
 	jr nz, .selectPressed
 .checkLevelSelect
 	ldh a, [hWinCount]
 	cp a, 2
 	jr c, .checkDemoTimer
-	bit 0, b		; A button
+	bit A_BUTTON_BIT, b		; A button
 	jr z, .drawLevelSelect
 	ldh a, [hWorldAndLevel]	; increment the level select
 	inc a			; Level
@@ -813,7 +813,7 @@ HandleStartLevel::	; 576
 	dec b
 	jr nz, .loop
 	call PrepareHUD
-	ld a, $0F
+	ld a, 15
 	ldh [rLYC], a	; height of the hud?
 	ld a, (1 << rTAC_ON) | rTAC_16384_HZ
 	ldh [rTAC], a
@@ -968,7 +968,7 @@ HandleGamePlay::	; 627
     ret
 
 ; 06BC
-GameState_Dead::
+HandleDead::
 	ld hl, hTimer
 	ld a, [hl]
 	and a
@@ -989,7 +989,7 @@ GameState_Dead::
 	ldh [hGameState], a
 	ret
 
-GameState_02::
+ResetToCheckpoint::
 	di
 	ld a, 0
 	ldh [rLCDC], a
@@ -1035,7 +1035,7 @@ GameState_02::
 	ld a, c
 	ld [$C0AB], a		; "progress" in level, used to spawn enemies?
 	call DrawInitialScreen		; draw first screen of the level
-	ld hl, vBGMap0 + $2B ; $982B		; right next to the coins
+	ld hl, vBGMap0 + SCRN_VX_B + 11 ; $982B		; right next to the coins
 	ld [hl], " "
 	inc l
 	ldh a, [hWorldAndLevel]
@@ -1140,10 +1140,10 @@ pauseOrReset:: ; 7DA
 
 .noReset
 	ldh a, [hJoyPressed]
-	bit 3, a			; todo start button bit. (Un)Pause the game!
+	bit START_BIT, a			; todo start button bit. (Un)Pause the game!
 	ret z
 	ldh a, [hGameState]
-	cp a, $0E
+	cp a, STATE_LOAD_MENU
 	ret nc				; <= gamestates mostly relating to normal gameplay
 	ld hl, rLCDC
 	ldh a, [hGamePaused]
@@ -1872,7 +1872,7 @@ Data_C19::
 	db -2, -2, -2, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 0, -1, 0, 0, -1, 0, 0, 0, 1, 0, 0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, $7F
 
 ; end of level gate, music
-GameState_07:: ; C40
+HandleLevelEndFX:: ; C40
 	ld hl, hTimer
 	ld a, [hl]
 	and a
@@ -1945,7 +1945,7 @@ GameState_05:: ; C73
 	ret
 
 ; Winning
-GameState_06:: ; CCB
+HandleLevelEnd:: ; CCB
 	ldh a, [hTimer]
 	and a
 	ret nz
@@ -2141,7 +2141,7 @@ GameState_08:: ; D49
 	dw $4402, $4402, $4BC2
 
 ; leaving bonus game?
-GameState_1B:: ; DF9
+HandleLeaveBonusGame:: ; DF9
 	di
 	xor a
 	ldh [rLCDC], a	; turn off lcd
@@ -2204,7 +2204,7 @@ GameState_1D:: ; E31
 	ret
 
 ; Open gate
-GameState_1E:: ; E5D
+HandleGateOpening:: ; E5D
 	ldh a, [hTimer]
 	and a
 	ret nz
@@ -2240,7 +2240,7 @@ GameState_1E:: ; E5D
 	ret
 
 ; gate is open
-GameState_1F:: ; E96
+HandleGateOpen:: ; E96
 	ldh a, [hTimer]
 	and a
 	ret nz
@@ -2901,7 +2901,7 @@ HandleAirplaneTakingOff:: ; 12C2
 	ld [hl], a
 	ret
 
-GameState_AirplaneMovingForward:: ; 12F1
+HandleAirplaneMovingForward:: ; 12F1
 	call .animateSpaceship
 	call LoadColumns		; loads level
 	ldh a, [hScrollX]
@@ -2992,20 +2992,20 @@ GameState_AirplaneMovingForward:: ; 12F1
 .data_1389
 	db $80, $40, $70, $29, $80
 
-GameState_AirplaneLeavingHanger:: ; 138E
+HandleAirplaneLeavingHanger:: ; 138E
 	call AnimateSpaceshipAndClouds
 	ldh a, [hScrollX]
 	inc a
 	inc a
 	ldh [hScrollX], a
-	and a, $08
+	and a, 8
 	ld b, a
 	ldh a, [$FFA3]	; switches between 0 and 8, depending on column loaded
 	cp b
 	ret nz
-	xor a, $08
+	xor a, 8
 	ldh [$FFA3], a
-	call GameState_AirplaneMovingForward.clearColumn
+	call HandleAirplaneMovingForward.clearColumn
 	ldh a, [$FFFB]
 	dec a
 	ldh [$FFFB], a
@@ -3211,7 +3211,7 @@ GameState_37::
 	db $4E, $F4, $55, 00 ; N
 	db $4E, $FC, $56, 00 ; D
 
-GameState_38::
+HandleTheEnd::
 	call AnimateSpaceshipAndClouds
 	ldh a, [hTimer]
 	and a
@@ -3279,7 +3279,7 @@ GameState_38::
 	ret
 
 AnimateSpaceshipAndClouds
-	call GameState_AirplaneMovingForward.animateSpaceship
+	call HandleAirplaneMovingForward.animateSpaceship
 	call GameState_33.animateClouds
 	ret
 
@@ -3309,7 +3309,7 @@ CreditsText
 	db $FF
 
 ; go down pipe
-GameState_09:: ; 161B
+HandleGoingDownPipe:: ; 161B
 	ld hl, wMarioPosY		; Mario Y position
 	ldh a, [$FFF8]		; Y position of block under pipe? Y target at least
 	cp [hl]
@@ -3324,7 +3324,7 @@ GameState_09:: ; 161B
 	ret
 
 ; warp to underground
-GameState_0A:: ; 162F
+HandleUndergroundWarping:: ; 162F
 	di
 	xor a
 	ldh [rLCDC], a
@@ -3464,7 +3464,7 @@ Call_16F5:: ; 16F5 Animate mario?
 	cp a, $23
 	ld a, [hl]
 	jr z, .jmp_1730			; wait, can this ever happen... Bug?
-	and a, $03
+	and a, 3
 	jr nz, .jmp_172C		; any 3 movement frames, change animation
 .jmp_1716
 	ld hl, wAnimIndex
@@ -3474,17 +3474,17 @@ Call_16F5:: ; 16F5 Animate mario?
 	inc [hl]
 	ld a, [hl]
 	and a, $0F
-	cp a, $04				; 3 sprites in the walking animation
+	cp a, 4				; 3 sprites in the walking animation
 	jr c, .jmp_172C
 	ld a, [hl]
 	and a, $F0
-	or a, $01
+	or a, 1
 	ld [hl], a
 .jmp_172C
 	call MoveMario			; check movement keys, move mario?
 	ret
 .jmp_1730
-	and a, $01
+	and a, 1
 	jr nz, .jmp_172C
 	jr .jmp_1716
 
@@ -3497,9 +3497,7 @@ Call_1736::
 	ldh [$FF8D], a
 	ld a, $05
 	ldh [$FF8F], a
-	SAVE_AND_SWITCH_ROM_BANK 3
-	call $4823
-	RESTORE_ROM_BANK
+	homecall Call_4823
 	ret
 
 ; standing on boss switch
@@ -3512,7 +3510,7 @@ Jmp_175B:: ; 175B
 ; Called every frame when standing on a pipe?
 Jmp_1765:: ; 1765
 	ldh a, [hJoyHeld]
-	bit 7, a
+	bit D_DOWN_BIT, a
 	jp z, Jmp_185D			; Down button
 	ld bc, -$20				; one screen width?
 	ld a, h
@@ -3560,7 +3558,7 @@ Jmp_1765:: ; 1765
 	ld a, [wInvincibilityTimer]
 	and a
 	jr nz, .skip			; Keep invincibility music going
-	ld a, $04
+	ld a, 4
 	ld [$DFE8], a			; underground music
 .skip
 	call ClearSprites			; clears some sprites
@@ -4288,11 +4286,11 @@ DisplayCoins::; 1C1B
 	ldh a, [hCoins]
 	ld b, a
 	and a, $0F
-	ld [vBGMap0 + $2A], a		; coins ones
+	ld [vBGMap0 + SCRN_VX_B + 10], a		; coins ones
 	ld a, b
 	and a, $F0
 	swap a
-	ld [vBGMap0 + $29], a		; coin tens
+	ld [vBGMap0 + SCRN_VX_B + 9], a		; coin tens
 	xor a
 	ldh [$FFFE], a
 	inc a
@@ -4326,11 +4324,11 @@ UpdateLives::
 	ld a, [wLives]
 	ld b, a
 	and a, $0F
-	ld [vBGMap0 + $07], a
+	ld [vBGMap0 + 7], a
 	ld a, b
 	and a, $F0
 	swap a
-	ld [vBGMap0 + $06], a		; TODO Gives these fellas a name
+	ld [vBGMap0 + 6], a		; TODO Gives these fellas a name
 .out
 	xor a
 	ld [wLivesEarnedLost], a
@@ -4402,7 +4400,7 @@ GameState_39::	; 1C7C
 HandleGameOver:: ; 1CE8
 	ld a, [wGameOverTimerExpired]
 	and a
-	call nz, GameState_38.resetToMenu
+	call nz, HandleTheEnd.resetToMenu
 	ret
 
 ; prepare time up
@@ -4470,12 +4468,12 @@ MoveMario::
 .jmp_1D49
 	ld de, wJumpStatus		; jump status. 00 on ground, 01 ascending, 02 descending
 	ldh a, [hJoyHeld]
-	bit 7, a			; todo constants, down button
+	bit D_DOWN_BIT, a			; down button
 	jr nz, .downButton
 .checkDirectionalKeys
-	bit 4, a			; right button
+	bit D_RIGHT_BIT, a			; right button
 	jr nz, .rightButton
-	bit 5, a			; left button
+	bit D_LEFT_BIT, a			; left button
 	jp nz, .leftButton
 	ld hl, $C20C		; speed?
 	ld a, [hl]
@@ -4509,7 +4507,7 @@ MoveMario::
 .downButton
 	push af
 	ldh a, [hSuperStatus]
-	cp a, $02			; full grown super mario
+	cp a, 2				; full grown super mario
 	jr nz, .skipCrouch	; small mario can't crouch
 	ld a, [de]			; de is C207
 	and a
@@ -4517,7 +4515,7 @@ MoveMario::
 	ld a, $18
 	ld [wAnimIndex], a		; crouching mario, hidden daisy
 	ldh a, [hJoyHeld]
-	and a, $30			; test bits left and right button
+	and a, D_LEFT | D_RIGHT	; test bits left and right button
 	jr nz, .jmp_1DA6
 	ld a, [$C20C]		; momentum?
 	and a
@@ -4650,7 +4648,7 @@ MoveMario::
 	jr c, .jmp_1E9F		; jump if X < 0x0F
 	push hl
 	ldh a, [hJoyHeld]
-	bit 5, a			; todo left button
+	bit D_LEFT_BIT, a			; todo left button
 	jr z, .jmp_1E97
 	ld a, [wAnimIndex]
 	cp a, $18			; crouching
@@ -5509,7 +5507,7 @@ Call_2363:: ; 2363
 	ret
 
 ; too many calls to far banks
-GameState_0D::
+HandleAutoScrollLevel::
     ldh a, [$B2]
     and a
     ret nz
@@ -5549,10 +5547,10 @@ GameState_0D::
     call Call_2491
     ldh a, [hActiveRomBank]
     ldh [hSavedRomBank], a
-    ld a, $02
+    ld a, BANK(UpdateTimerAndFloaties)
     ldh [hActiveRomBank], a
     ld [MBC1RomBank], a
-    call $5844
+    call UpdateTimerAndFloaties
     ldh a, [hSavedRomBank]
     ldh [hActiveRomBank], a
     ld [MBC1RomBank], a
@@ -7271,7 +7269,7 @@ DisplayTimer:: ; 3D6A ; TODO better name?
 	ret
 
 ; entering bonus game. Clear the background, and print amount of lives
-GameState_12:: ; 3D97
+HandleGotoBonusGame:: ; 3D97
 	ld hl, $DFE8
 	ld a, 9
 	ld [hl], a
@@ -7279,7 +7277,7 @@ GameState_12:: ; 3D97
 	ldh [rLCDC], a
 	ldh [hScrollX], a
 	ld hl, wOAMBuffer
-	ld b, $A0
+	ld b, 160
 .oamloop			; Remove all objects
 	ldi [hl], a
 	dec b
@@ -7295,7 +7293,7 @@ GameState_12:: ; 3D97
 	ld b, $FF
 	dec c
 	jr nz, .tilemapLoop
-	ld de, vBGMap0 + $8B ; $988B	; todo
+	ld de, vBGMap0 + 4 * SCRN_VX_B + 11 ; $988B
 	ld a, [wLives]
 	ld b, a
 	and a, $0F
@@ -7307,11 +7305,11 @@ GameState_12:: ; 3D97
 	ld [de], a		; Print lives at the appropriate position
 	ld a, %10000011	
 	ld [rLCDC], a	; Turn on LCD, background, objects
-	ld a, $13	; todo
+	ld a, STATE_19
 	ldh [hGameState], a
 	ret
 
-GameState_13:: ; 3DD7
+HandleEnterBonusGame:: ; 3DD7
 	xor a
 	ldh [rLCDC], a
 	ld hl, vBGMap0
@@ -7325,7 +7323,7 @@ GameState_13:: ; 3DD7
 	jr nz, .topLoop
 	ld a, $FC
 	ld [hl], a		; Top Right corner
-	ld de, $0020	; todo screen width
+	ld de, SCRN_VX_B ; todo screen width
 	ld l, e
 	ld b, $10
 	ld c, $02
@@ -7352,7 +7350,7 @@ GameState_13:: ; 3DD7
 	jr nz, .bottomLoop
 	ld a, $E9
 	ld [hl], a		; Bottom Right corner
-	ld hl, vBGMap0 + $45 ; $9845
+	ld hl, vBGMap0 + 2 * SCRN_VX_B + 5 ; $9845
 	ld a, "b"
 	ldi [hl], a
 	ld a, "o"
@@ -7372,7 +7370,7 @@ GameState_13:: ; 3DD7
 	ldi [hl], a
 	ld a, "e"
 	ld [hl], a		; bonus game
-	ld hl, vBGMap0 + $87 ; $9887
+	ld hl, vBGMap0 + 4 * SCRN_VX_B + 7 ; $9887
 	ld a, $E4		; mario head
 	ldi [hl], a
 	inc l
@@ -7425,13 +7423,13 @@ GameState_13:: ; 3DD7
 	db 0, 1, 2, $E5, 3, 1, 2, $E5	; These happen to be valid opcodes
 	ld de, .prizePermutations		; with no side effects. Neat :) 
 	ldh a, [rDIV]
-	and a, $03
+	and a, 3
 	inc a				; "Random" number from 1 to 4
 .addAtoDE
 	inc de
 	dec a
 	jr nz, .addAtoDE	; No ADD DE, A instruction
-	ld hl, vBGMap0 + $D2 ; $98D2		; First prize
+	ld hl, vBGMap0 + 6 * SCRN_VX_B + 18 ; $98D2		; First prize
 	ld bc, SCRN_VX_B * 3			; 3 screen rows
 .displayPrize
 	ld a, [de]
@@ -7443,13 +7441,13 @@ GameState_13:: ; 3DD7
 	jr nz, .displayPrize
 	ld a, %10000011			; TODO make this a constant
 	ldh [rLCDC], a
-	ld a, $14
+	ld a, STATE_20
 	ldh [hGameState], a
 	ret
 
 ; draw the ladder
 GameState_16:: ; 3EA7
-	ld bc, $0020		; todo screen width
+	ld bc, SCRN_VX_B		; todo screen width
 .drawLadder
 	ld de, wLadderTiles
 	ld a, [wLadderLocationHi]	; eww, big endian
@@ -7482,7 +7480,7 @@ GameState_16:: ; 3EA7
 	ld a, 3
 	ld [$DA29], a
 .nextState
-	ld a, $15
+	ld a, STATE_21
 	ldh [hGameState], a
 	ret
 
@@ -7541,14 +7539,14 @@ Call_3F13::	; 3F13
 	and a, $FE			; ignore middle bit because mario is two tiles wide??
 	rlca
 	rlca
-	add a, $08
+	add a, 8
 	ldh [$FFAD], a		; override mario's y-coordinate?
 	ldh a, [$FFAF]
 	and a, $1F
 	rla
 	rla
 	rla
-	add a, $08
+	add a, 8
 	ldh [$FFAE], a		; or maybe it's used for the block
 	ret
 
@@ -7562,10 +7560,10 @@ DisplayScore:: ; 3F39
 	and a
 	ret nz
 	ldh a, [$FFEA]
-	cp a, 02
+	cp a, 2
 	ret z
 	ld de, wScore + 2	; Start with the ten and hundred thousands
-	ld hl, vBGMap0 + $20 ; $9820		; TODO VRAM layout
+	ld hl, vBGMap0 + SCRN_VX_B ; $9820		; TODO VRAM layout
 .fromDEtoHL
 	xor a
 	ldh [$FFB1], a		; Start by printing spaces instead of leading zeroes

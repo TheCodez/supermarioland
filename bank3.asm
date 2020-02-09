@@ -97,7 +97,7 @@ Call_4823:: ; 4823
 .jmp_4848
 	ldh [$FF95], a
 .jmp_484A
-	ld b, $07
+	ld b, 7
 	ld de, $FF86
 .jmp_484F
 	ldi a, [hl]

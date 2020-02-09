@@ -41,9 +41,9 @@ INCBIN "gfx/commonTiles3.2bpp"
 ; 5832
 ; Bonus game GameState routines
 ; No idea why this level of indirection
-GameState_SetupMarioSprite:: ; 5832
-	jp _GameState_SetupMarioSprite
-GameState_15:: ; 5835
+HandleBonusGameMarioSprites:: ; 5832
+	jp _HandleBonusGameMarioSprites
+HandleBonusGame:: ; 5835
 	jp _GameState_15
 GameState_17:: ; 5838
 	jp _GameState_17
@@ -432,7 +432,7 @@ UpdateFloaties:: ; 5892
 	ret
 
 ; setup Mario's sprite in OAM
-_GameState_SetupMarioSprite:: ; 5A72
+_HandleBonusGameMarioSprites:: ; 5A72
 	ld hl, wOAMBuffer + 4 * $C
 	ldh a, [rDIV]
 	and a, $3
