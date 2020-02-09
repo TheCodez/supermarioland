@@ -1133,14 +1133,14 @@ StartLevelMusic::
 
 pauseOrReset:: ; 7DA
 	ldh a, [hJoyHeld]
-	and a, $0F
-	cp a, $0F			; TODO constants
+	and a, A_BUTTON | B_BUTTON | START | SELECT
+	cp a, A_BUTTON | B_BUTTON | START | SELECT
 	jr nz, .noReset
 	jp Init				; if at any point A+B+Start+Select are pressed, reset
 
 .noReset
 	ldh a, [hJoyPressed]
-	bit START_BIT, a			; todo start button bit. (Un)Pause the game!
+	bit START_BIT, a			; start button bit. (Un)Pause the game!
 	ret z
 	ldh a, [hGameState]
 	cp a, STATE_LOAD_MENU
@@ -1157,7 +1157,7 @@ pauseOrReset:: ; 7DA
 	ret
 
 .unpaused
-	res 5, [hl]
+	res 5, [hl]			; disable windows again
 	ld a, 2				; Unpause music
 	jr .pauseMusic
 
@@ -1170,14 +1170,14 @@ DrawInitialScreen::
 	ldi a, [hl]
 	ld [de], a
 	inc de
-	dec b				; What's the point of a CopyData routine,
-	jr nz, .copyLoop	; if you're not going to fucking use it
+	dec b
+	jr nz, .copyLoop
 	ldh a, [hSuperStatus]
 	and a
 	jr z, .drawLevel	; jump if small mario
 	ld a, $10
 	ld [wAnimIndex], a		; animation index. upper nibble is 1 of large mario
-.drawLevel::			; does weird things in autoscroll
+.drawLevel					; does weird things in autoscroll
 	ld hl, hColumnIndex
 	xor a
 	ld b, 6
@@ -1196,7 +1196,7 @@ DrawInitialScreen::
 	ldh a, [hLevelIndex]
 	cp a, $0C			; start menu doesn't scroll
 	jr z, .drawLoop
-	ld b, $1B			; load 27 tiles (20 visible, 7 preloaded)
+	ld b, SCRN_X_B + 7	; load 27 tiles (20 visible, 7 preloaded)
 .drawLoop
 	push bc
 	call LoadNextColumn	; load a column of the level into C0B0
@@ -1215,7 +1215,7 @@ EntityCollision:: ; 84E
 	dec a
 	ldh [hStompChainTimer], a
 .skip
-	ld de, -$10
+	ld de, -16
 	ld b, $0A
 	ld hl, $D190
 .enemyLoop
@@ -1286,13 +1286,13 @@ EntityCollision:: ; 84E
 
 .jmp_8C7
 	ld a, [wMarioPosX]		; mario x pos
-	add a, $06
+	add a, 6
 	ld c, [hl]
 	dec l
 	sub c
 	jr c, .jmp_94B
 	ld a, [wMarioPosX]
-	sub a, $06
+	sub a, 6
 	sub b
 	jr nc, .jmp_94B
 	ld b, [hl]
@@ -1372,13 +1372,13 @@ EntityCollision:: ; 84E
 	and a
 	jr nz, .jmp_974			; try to kill enemy?
 	ldh a, [hSuperStatus]
-	cp a, $03
+	cp a, 3
 	jr nc, .out				; if superstatus is 4 (or more?), Mario has some
 	call Call_2A44			; i-frames
 	and a
 	jr z, .out
 	ldh a, [hSuperStatus]
-	and a
+	and a       ; mario small
 	jr nz, .injureAndOut
 	call KillMario
 .out
@@ -1403,17 +1403,17 @@ EntityCollision:: ; 84E
 
 .powerUpCollision
 	ldh a, [$FFFB]
-	cp a, $29				; mushroom
+	cp a, POWERUP_MUSHROOM			; mushroom
 	jr z, .pickupMushroom
-	cp a, $34				; Star
+	cp a, POWERUP_STAR				; Star
 	jr z, .pickupStar
-	cp a, $2B				; 1 UP
+	cp a, POWERUP_ONE_UP			; 1 UP
 	jr z, .pickup1UP
-	cp a, $2E				; Flower
+	cp a, POWERUP_FLOWER			; Flower
 	jr nz, .out
 .pickupFlower
 	ldh a, [hSuperStatus]
-	cp a, $02				; if we lost our Super before picking up
+	cp a, 2					; if we lost our Super before picking up
 	jr nz, .becomeSuper		; the flower, it functions like a mushroom
 	ldh [hSuperballMario], a
 .playPowerUpSound
@@ -1427,7 +1427,7 @@ EntityCollision:: ; 84E
 	add a, -4
 	ldh [hFloatyX], a		; todo comment
 	ld a, [wMarioPosY]
-	sub a, $10
+	sub a, 16
 	ldh [hFloatyY], a			; Y position of floaty number
 	dec l
 	dec l
@@ -1437,10 +1437,10 @@ EntityCollision:: ; 84E
 
 .pickupMushroom
 	ldh a, [hSuperStatus]
-	cp a, $02
+	cp a, 2
 	jr z, .spawn1000ScoreFloaty
 .becomeSuper
-	ld a, $01
+	ld a, 1
 	ldh [hSuperStatus], a
 	ld a, $50
 	ldh [hTimer], a
@@ -1469,7 +1469,7 @@ InjureMario:: ; 9E0
 	ldh [hSuperballMario], a
 	ld a, $50
 	ldh [hTimer], a
-	ld a, $06
+	ld a, 6
 	ld [$DFE0], a			; injury music
 	ret
 
@@ -1482,7 +1482,7 @@ KillMario:: ; 9F1
 	xor a
 	ldh [hSuperballMario], a; superball capability
 	ldh [rTMA], a
-	ld a, $02
+	ld a, 2
 	ld [$DFE8], a			; sound effect
 	ld a, $80
 	ld [$C200], a
@@ -1590,7 +1590,7 @@ Call_A2D:: ; A2D
 	and a
 	jr z, .noHit
 	ld a, [wMarioPosX]		; X pos
-	add a, $FC			; or -4
+	add a, -4				; or -4
 	ldh [hFloatyX], a
 	ld a, [wMarioPosY]		; Y pos
 	sub a, $10
@@ -1783,7 +1783,7 @@ PrepareDeath:: ; B8D
 	ld [hl], a			; Y position
 	inc l
 	ld a, [wMarioPosX]	; Mario's screen x position
-	add a, -8			; or subtract 8
+	add a, -8			; subtract 8
 	ld b, a
 	ldi [hl], a			; X position
 	ld [hl], $0F		; todo mario dying object top
