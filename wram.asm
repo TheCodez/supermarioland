@@ -174,3 +174,17 @@ wBonusGameFrameCounter:: ; DA22
 
 wLadderTiles:: ; DA23
 	ds 4
+
+ds $DFE0 - $DA27
+wSquareSFX:: ; DFE0
+	ds 1
+
+ds 7
+
+wActiveMusic:: ; DFE8
+	ds 1
+
+ds $DFF8 - $DFE9
+
+wNoiseSFX:: ; DFF8
+	ds 1

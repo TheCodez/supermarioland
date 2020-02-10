@@ -8,6 +8,11 @@ hWinCount EQU $FF9A
 hStompChainTimer EQU $FF9C
 hStompChain EQU $FF9D
 
+hBoundingBoxTop EQU $FFA0
+hBoundingBoxBottom EQU $FFA1
+hBoundingBoxLeft EQU $FFA2
+hBoundingBoxRight EQU $FF8F
+
 hScrollX EQU $FFA4
 hTimer EQU $FFA6
 hFrameCounter EQU $FFAC

@@ -1,4 +1,5 @@
 INCLUDE "charmap.asm"
+INCLUDE "constants.asm"
 INCLUDE "gbhw.asm"
 INCLUDE "hram.asm"
 INCLUDE "vram.asm"
@@ -61,7 +62,7 @@ HandleBonusGameMarioSprites:: ; 5832
 	jp _HandleBonusGameMarioSprites
 
 HandleBonusGame:: ; 5835
-	jp _GameState_15
+	jp _HandleBonusGame
 
 GameState_17:: ; 5838
 	jp _GameState_17
@@ -456,7 +457,7 @@ UpdateFloaties:: ; 5892
 _HandleBonusGameMarioSprites:: ; 5A72
 	ld hl, wOAMBuffer + 4 * $C
 	ldh a, [rDIV]
-	and a, $3
+	and a, 3
 	inc a
 	ld b, a
 	ld a, $20
@@ -508,16 +509,16 @@ _HandleBonusGameMarioSprites:: ; 5A72
 	inc d
 	ld a, d
 	ld [hl], a		; tile number
-	ld a, $15
+	ld a, STATE_21
 	ldh [hGameState], a
 	ret
 
-_GameState_15:: ; 5ABB
+_HandleBonusGame:: ; 5ABB
 	ld a, [$DA27]	; ladder status?
 	bit 0, a
 	jr z, .jmp_5AC9
 	ldh a, [hJoyHeld]
-	bit 0, a		; A button todo
+	bit A_BUTTON_BIT, a		; A button todo
 	jp nz, .jmp_5B56
 .jmp_5AC9
 	ld hl, wBonusGameFrameCounter
@@ -614,7 +615,7 @@ _GameState_15:: ; 5ABB
 	ld a, $2D
 	ld [hl], a
 .jmp_5B51
-	ld a, $16
+	ld a, STATE_22
 	ldh [hGameState], a
 	ret
 
@@ -623,7 +624,7 @@ _GameState_15:: ; 5ABB
 	ld [$DA22], a
 	ld [$DA27], a
 	ld [$DA1A], a
-	ld a, $17
+	ld a, STATE_23
 	ldh [hGameState], a
 	ret
 
@@ -633,13 +634,13 @@ _GameState_17:: ; 5B65
 	and a
 	jr nz, .jmp_5B73
 	inc [hl]				; start walking
-	ld hl, $DFE8
+	ld hl, wActiveMusic
 	ld a, $0A				; walking music
 	ld [hl], a
 .jmp_5B73
 	ld hl, wOAMBuffer + 4 * $C + 1	; X pos
 	ld de, $5C9D			; todo
-	ld b, $04
+	ld b, 4
 	ld a, [$DA14]			; animation index
 	and a
 	jr z, .objectLoop		; Tssk
@@ -675,13 +676,13 @@ _GameState_17:: ; 5B65
 	dec b
 	jr nz, .objectLoop
 	ld a, [$DA14]
-	add a, $04
+	add a, 4
 	ld [$DA14], a
 	ld hl, wOAMBuffer + 4 * $C + 1
 	ldd a, [hl]
 	cp a, $80
 	jr nc, .getPrize
-	add a, $04
+	add a, 4
 	ldh [$FFAE], a
 	ld a, [hl]
 	add a, $10
@@ -691,7 +692,7 @@ _GameState_17:: ; 5B65
 	dec a
 	ld [bc], a
 	ret nz
-	ld a, $01
+	ld a, 1
 	ld [bc], a
 	call LookupTile
 	ld a, [hl]
@@ -702,25 +703,25 @@ _GameState_17:: ; 5B65
 	ret
 
 .goDownLadder
-	ld a, $18
+	ld a, STATE_24
 	ldh [hGameState], a
 	ret
 
 .goUpLadder
-	ld a, $19
+	ld a, STATE_25
 	ldh [hGameState], a
 	ret
 
 .getPrize
 	xor a
 	ld [$DA1C], a
-	ld a, $1A
+	ld a, STATE_26
 	ldh [hGameState], a
 	ret
 
 _GameState_18:: ; 5BEB
 	ld hl, wOAMBuffer + 4 * $C
-	ld b, $04			; 4 objects per sprite
+	ld b, 4			; 4 objects per sprite
 	ld de, $5C9D
 	ld a, [$DA14]
 	and a
@@ -758,7 +759,7 @@ _GameState_18:: ; 5BEB
 	dec b
 	jr nz, .objectLoop
 	ld a, [$DA14]
-	add a, $04
+	add a, 4
 	ld [$DA14], a
 	ld hl, wOAMBuffer + 4 * $C
 	ld a, [hl]
@@ -773,7 +774,7 @@ _GameState_18:: ; 5BEB
 .resumeWalking
 	ld a, $08
 	ld [$DA16], a
-	ld a, $17
+	ld a, STATE_23
 	ldh [hGameState], a
 	ret
 
@@ -817,7 +818,7 @@ _GameState_19:: ; 5C44
 	dec b
 	jr nz, .objectLoop
 	ld a, [$DA14]
-	add a, $04
+	add a, 4
 	ld [$DA14], a
 	ld hl, wOAMBuffer + 4 * $C
 	ld a, [hl]
@@ -830,9 +831,9 @@ _GameState_19:: ; 5C44
 	ret
 
 .resumeWalking
-	ld a, $08
+	ld a, 8
 	ld [$DA16], a
-	ld a, $17
+	ld a, STATE_23
 	ldh [hGameState], a
 	ret
 
@@ -862,7 +863,7 @@ _GameState_1A:: ; 5CDE
 	jp nz, .jmp_5D69
 	ld c, 2
 .erasePrizes
-	ld hl, $98D1			; the * of the top prize
+	ld hl, vBGMap0 + $D1 ; $98D1			; the * of the top prize
 	ld de, $0060
 	ld a, [wOAMBuffer + 4 * $C]	; Y coordinate
 	ld b, a
@@ -900,7 +901,7 @@ _GameState_1A:: ; 5CDE
 	jr nz, .erasePrizes
 	ld hl, wOAMBuffer + 4 * $C + 1	; X
 	ldd a, [hl]
-	add a, $18				; 3 tiles ahead
+	add a, 8 * 3			; 3 tiles ahead
 	ldh [$FFAE], a
 	ld a, [hl]				; Y
 	add a, $08				; 1 tile down
@@ -916,7 +917,7 @@ _GameState_1A:: ; 5CDE
 	ld a, $02				; 1-UP
 	ld [$DA17], a
 .playWinSound
-	ld hl, $DFE8
+	ld hl, wActiveMusic
 	ld a, $0D
 	ld [hl], a				; Win sound
 	ret
@@ -935,7 +936,7 @@ _GameState_1A:: ; 5CDE
 	ldh a, [hSuperballMario]
 	and a
 	jr z, .awardFlower
-	ld hl, $DFE8
+	ld hl, wActiveMusic
 	ld a, $0E				; Lose sound
 	ld [hl], a
 	ld a, $01				; no prize
@@ -990,15 +991,15 @@ _GameState_1A:: ; 5CDE
 	jr nz, .powerupAnimation
 	inc a
 	ld [$DA1C], a
-	ld hl, $DFE0
-	ld a, $04				; powerup sound
+	ld hl, wSquareSFX
+	ld a, 4				; powerup sound
 	ld [hl], a
 	ldh a, [hSuperStatus]
 	cp a, $02
 	jr z, .jmp_5DF7
 .powerupAnimation
 	ld hl, wOAMBuffer + 4 * $C + 2	; tile number
-	ld b, $04				; 4 objects
+	ld b, 4							; 4 objects
 	ld a, [wBonusGameGrowAnimationFlag]
 	and a
 	jr nz, .makeMarioSmall
@@ -1030,7 +1031,7 @@ _GameState_1A:: ; 5CDE
 	ret
 
 .jmp_5DF7
-	ld a, $01
+	ld a, 1
 	ld [$DA17], a
 	inc a
 	ldh [hSuperStatus], a
@@ -1042,7 +1043,7 @@ _GameState_1A:: ; 5CDE
 	dec a
 	ld [wBonusGameAnimationTimer], a
 	ret nz
-	ld a, $04
+	ld a, 4
 	ld [wBonusGameAnimationTimer], a
 	ld a, [$DA20]
 	and a
@@ -1059,12 +1060,12 @@ _GameState_1A:: ; 5CDE
 	ld a, b
 	ldi [hl], a
 	ld a, c
-	add a, $08
+	add a, 8
 	ldi [hl], a
 	inc l
 	inc l
 	ld a, b
-	add a, $08
+	add a, 8
 	ld b, a
 	ldi [hl], a
 	ld a, c
@@ -1074,7 +1075,7 @@ _GameState_1A:: ; 5CDE
 	ld a, b
 	ldi [hl], a
 	ld a, c
-	add a, $08
+	add a, 8
 	ldi [hl], a
 	xor a
 	inc a
@@ -1133,8 +1134,8 @@ _GameState_1A:: ; 5CDE
 	ld [$DA20], a
 	cp a, $06
 	ret nz
-	ld hl, $DFE0
-	ld a, $08			; 1UP sound
+	ld hl, wSquareSFX
+	ld a, 8				; 1UP sound
 	ld [hl], a
 	ld a, [wLives]
 	and a
@@ -1186,7 +1187,7 @@ _GameState_1A:: ; 5CDE
 	ld [$DA20], a
 	cp a, $05
 	ret nz
-	ld hl, $DFE0
+	ld hl, wSquareSFX
 	ld a, $02
 	ld [$DA21], a
 	ret
