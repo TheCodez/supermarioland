@@ -64,14 +64,14 @@ HandleBonusGameMarioSprites:: ; 5832
 HandleBonusGame:: ; 5835
 	jp _HandleBonusGame
 
-GameState_17:: ; 5838
-	jp _GameState_17
+HandleBonusGameWalking:: ; 5838
+	jp _HandleBonusGameWalking
 
-GameState_18:: ; 583B
-	jp _GameState_18
+HandleBonusGameDescendLadder:: ; 583B
+	jp _HandleBonusGameDescendLadder
 
-GameState_19:: ; 583E
-	jp _GameState_19
+HandleBonusGameAscendLadder:: ; 583E
+	jp _HandleBonusGameAscendLadder
 
 GameState_1A:: ; 5841
 	jp _GameState_1A
@@ -628,7 +628,7 @@ _HandleBonusGame:: ; 5ABB
 	ldh [hGameState], a
 	ret
 
-_GameState_17:: ; 5B65
+_HandleBonusGameWalking:: ; 5B65
 	ld hl, $DA1C			; 1 if walking
 	ld a, [hl]
 	and a
@@ -719,7 +719,7 @@ _GameState_17:: ; 5B65
 	ldh [hGameState], a
 	ret
 
-_GameState_18:: ; 5BEB
+_HandleBonusGameDescendLadder:: ; 5BEB
 	ld hl, wOAMBuffer + 4 * $C
 	ld b, 4			; 4 objects per sprite
 	ld de, $5C9D
@@ -778,7 +778,7 @@ _GameState_18:: ; 5BEB
 	ldh [hGameState], a
 	ret
 
-_GameState_19:: ; 5C44
+_HandleBonusGameAscendLadder:: ; 5C44
 	ld hl, wOAMBuffer + 4 * $C
 	ld b, $04			; 4 objects per sprite
 	ld de, $5C9D

@@ -44,4 +44,5 @@ charmap "*", $2B
 charmap " ", $2C
 charmap "♥", $84
 
+charmap "<LINE>", $FE
 charmap "@", $FF

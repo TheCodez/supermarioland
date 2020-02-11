@@ -86,7 +86,21 @@ ds 2
 wMarioOnGround:: ; C20A
 	ds 1
 
-ds $D002 - $C20B
+ds $C210 - $C20B
+
+wEntityFlags:: ; C210
+	ds 1
+
+wEntityPosY:: ; C211
+	ds 1
+
+wEntityPosX:: ; C212
+	ds 1
+
+wEntityAnimIndex:: ; C213
+	ds 1
+
+ds $D002 - $C214
 
 wCurrentCommand:: ; D002
 	db
