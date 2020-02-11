@@ -61,7 +61,11 @@ ds 1		; C0F0
 wWinCount:: ; C0E1
 	db
 
-ds $C201 - $C0E2
+ds $C200 - $C0E2
+
+wLevelData:: ; C200
+wMarioFlags:: ; C200
+	ds 1
 
 wMarioPosY::  ; C201
 	ds 1
@@ -72,7 +76,14 @@ wMarioPosX::  ; C202
 wAnimIndex:: ; C203
 	ds 1
 
-ds 3
+wC204:: ; C204
+	ds 1
+
+wMarioFacingDir:: ; C205
+	ds 1
+
+wC206:: ; C206
+	ds 1
 
 ; Jump status
 ; 00 on ground;
@@ -81,12 +92,29 @@ ds 3
 wJumpStatus:: ; C207
 	ds 1
 
-ds 2
+wC208:: ; C208
+	ds 1
+
+wC209:: ; C209
+	ds 1
 
 wMarioOnGround:: ; C20A
 	ds 1
 
-ds $C210 - $C20B
+wC20B:: ; C20B
+	ds 1
+
+wMarioMomentum:: ; C20C
+	ds 1
+
+wMarioWalkingDir:: ; C20D
+	ds 1
+
+wC20E:: ; C20E
+	ds 1
+
+wC20F:: ; C20F
+	ds 1
 
 wEntityFlags:: ; C210
 	ds 1

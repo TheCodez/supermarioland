@@ -289,10 +289,10 @@ HandleGameState::
 	dw ResetToCheckpoint ; 0x02 ✓ Reset to checkpoint
 	dw PrepareDeath ; 0x03 ✓ Pre dying
 	dw HandleDying ; 0x04 ✓ Dying animation
-	dw GameState_05  ; 0x05 ✓ Explosion/Score counting down
+	dw HandleLevelEndCountdownTimer  ; 0x05 ✓ Explosion/Score counting down
 	dw HandleLevelEnd ; 0x06 ✓ End of level
 	dw HandleLevelEndFX ; 0x07 ✓ End of level gate, music
-	dw GameState_08.entryPoint ; 0x08 ✓ Increment Level, load tiles
+	dw HandlePrepareNextLevel.entryPoint ; 0x08 ✓ Increment Level, load tiles
 	dw HandleGoingDownPipe ; 0x09 ✓ Going down a pipe
 	dw HandleUndergroundWarping ; 0x0A ✓ Warping to underground?
 	dw HandleGoingRightIntoPipe ; 0x0B ✓ Going right in a pipe
@@ -316,30 +316,30 @@ HandleGameState::
 	dw GameState_1D ; 0x1D ✓
 	dw HandleGateOpening ; 0x1E ✓ Gate opening
 	dw HandleGateOpen ; 0x1F ✓ Gate open
-	dw GameState_20 ; 0x20 ✓ Walk off button
-	dw GameState_21 ; 0x21 ✓ Mario offscreen
+	dw MarioStartsWalkingOffscreen ; 0x20 ✓ Walk off button
+	dw HandleMarioWalksOffscreen ; 0x21 ✓ Mario offscreen
 	dw HandleScrollToDaisy ; 0x22 ✓ Scroll to fake Daisy
-	dw GameState_23 ; 0x23 ✓ Walk to fake Daisy
+	dw HandleWalkToFakeDaisy ; 0x23 ✓ Walk to fake Daisy
 	dw HandleFakeDaisySpeaking ; 0x24 ✓ Fake Daisy speak
-	dw GameState_25 ; 0x25 ✓ Fake Daisy morphing
-	dw GameState_26 ; 0x26 ✓ Fake Daisy monster jumping away
-	dw GameState_27 ; 0x27 ✓ Tatanga dying
-	dw GameState_28 ; 0x28 ✓ Tatanga dead, plane moves forward
+	dw HandleFakeDaisyMorphing ; 0x25 ✓ Fake Daisy morphing
+	dw HandleFakeDaisyJumpingAway ; 0x26 ✓ Fake Daisy monster jumping away
+	dw HandleTatangaDying ; 0x27 ✓ Tatanga dying
+	dw HandleTatangaDead ; 0x28 ✓ Tatanga dead, plane moves forward
 	dw GameState_29 ; 0x29 ✓ 
 	dw HandleDaisySpeaking ; 0x2A ✓ Daisy speaking
 	dw HandleDaisyMovingTowardsMario ; 0x2B ✓ Daisy moving
 	dw HandleDaisyKiss ; 0x2C ✓ Daisy kissing
 	dw HandleDaisyQuestOver ; 0x2D ✓ Daisy quest over
-	dw GameState_2E ; 0x2E ✓ Mario credits running
+	dw HandleMarioAndDaisyWalking ; 0x2E ✓ Mario credits running
 	dw HandleEnterAirplane ; $2F ✓ Entering airplane
 	dw HandleAirplaneTakingOff ; 0x30 ✓ Airplane taking off
 	dw HandleAirplaneMovingForward ; 0x31 ✓ Airplane moving forward
 	dw HandleAirplaneLeavingHanger ; 0x32 ✓ Airplane leaving hanger?
 	dw GameState_33.entryPoint ; 0x33 ✓ In between two credits?
-	dw GameState_34 ; $34 ✓ Credits coming up
-	dw GameState_35 ; $35 ✓ Credits stand still
-	dw GameState_36 ; $36 ✓ Credits leave
-	dw GameState_37 ; $37 ✓ Airplane leaving
+	dw HandleCreditsComingUp ; $34 ✓ Credits coming up
+	dw HandleCreditsStandingStill ; $35 ✓ Credits stand still
+	dw HandleCreditsLeave ; $36 ✓ Credits leave
+	dw HandleAirplaneLeaving ; $37 ✓ Airplane leaving
 	dw HandleTheEnd ; $38 ✓ THE END letters flying
 	dw PrepareGameOver ; $39 ✓ Pre game over?
 	dw HandleGameOver ; $3A ✓ Game over
@@ -733,12 +733,12 @@ HandleStartLevel::	; 576
 	ldh [$FFB1], a
 	ld a, $5B
 	ldh [$FFE9], a
-	call Call_2442		; superfluous? happens in GameState_08.loadWorldTiles?
+	call Call_2442		; superfluous? happens in HandlePrepareNextLevel.loadWorldTiles?
 	call Call_3D1A		; todo
 	call DisplayCoins
 	call UpdateLives.displayLives
 	ldh a, [hWorldAndLevel]
-	call GameState_08.loadWorldTiles
+	call HandlePrepareNextLevel.loadWorldTiles
 
 UnusedState:: ; 5CE Unused?
 	ret
@@ -809,7 +809,7 @@ HandleGamePlay::	; 627
     ldh [hActiveRomBank], a
     ld [MBC1RomBank], a
     call $48FC
-    ld bc, $C208
+    ld bc, wC208
     ld hl, Data_216D
     call Call_490D
     ld bc, $C218
@@ -1023,7 +1023,7 @@ StartLevelMusic::
 	db 7, 7, 3
 	db 8, 8, 5
 	db 7, 3, 3
-	db 6, 6 ,5
+	db 6, 6, 5
 
 pauseOrReset:: ; 7DA
 	ldh a, [hJoyHeld]
@@ -1057,8 +1057,8 @@ pauseOrReset:: ; 7DA
 
 ; this draw the first screen of the level. The rest is dynamically loaded
 DrawInitialScreen::
-	ld hl, Data_211D
-	ld de, $C200
+	ld hl, InitialStateData
+	ld de, wLevelData	; level data: mario data etc.
 	ld b, $51			; Bug? One byte too much
 .copyLoop				; some sort of initialisation
 	ldi a, [hl]
@@ -1214,14 +1214,14 @@ EntityCollision:: ; 84E
 	dec l
 	ld [hl], $D			; C208
 	dec l
-	ld [hl], 1			; C207 jump status
+	ld [hl], 1			; wJumpStatus
 	ld hl, wAnimIndex		; animation
 	ld a, [hl]
 	and a, $F0
 	or a, $04			; flying
 	ld [hl], a
 .enemyKilled
-	ld a, $03
+	ld a, SOUND_STOMP
 	ld [wSquareSFX], a		; stomp sound
 	ld a, [wMarioPosX]		; X pos
 	add a, -4
@@ -1350,7 +1350,7 @@ EntityCollision:: ; 84E
 .pickup1UP
 	ld a, $FF
 	ldh [hFloatyControl], a		; 1UP floaty
-	ld a, $08
+	ld a, SOUND_ONE_UP
 	ld [wSquareSFX], a				; life up
 	ld a, 1
 	ld [wLivesEarnedLost], a
@@ -1378,8 +1378,8 @@ KillMario:: ; 9F1
 	ldh [rTMA], a
 	ld a, 2
 	ld [wActiveMusic], a			; sound effect
-	ld a, $80
-	ld [$C200], a
+	ld a, $80                   ; make mario invisible
+	ld [wMarioFlags], a
 	ld a, [wMarioPosY]			; Mario Y pos
 	ld [wMarioDeathY], a			; death Y pos?
 	ret
@@ -1652,7 +1652,7 @@ Call_AEA:: ; AEA
 	ldi [hl], a			; C208
 	ldi [hl], a			; C209
 	ld [hl], 1			; C20A 1 if mario on the ground
-	ld hl, $C20C		; two INC L's would've been cheaper >_<
+	ld hl, wMarioMomentum		; two INC L's would've been cheaper >_<
 	ld a, [hl]
 	cp a, $07			; momentum?
 	jr c, .out
@@ -1780,7 +1780,7 @@ HandleLevelEndFX:: ; C40
 	ld a, $40
 	ldh [hTimer], a
 .jmp_C55
-	ld a, STATE_5				; score counting down
+	ld a, STATE_SCORE_COUNTING_DOWN		; score counting down
 	ldh [hGameState], a
 	xor a
 	ld [wGameTimerExpiringFlag], a
@@ -1793,12 +1793,12 @@ HandleLevelEndFX:: ; C40
 	ldh a, [hWorldAndLevel]
 	cp a, $43				; last level
 	ret nz
-	ld a, STATE_LEVEL_END				; don't count down score after Tatanga
+	ld a, STATE_LEVEL_END		; don't count down score after Tatanga
 	ldh [hGameState], a
 	ret
 
 ; explode enemies, count down timer and add to score
-GameState_05:: ; C73
+HandleLevelEndCountdownTimer:: ; C73
 	ldh a, [hWorldAndLevel]
 	and a, $0F
 	cp a, 3
@@ -1905,7 +1905,7 @@ HandleLevelEnd:: ; CCB
 	call InitSound
 	ret
 
-GameState_08:: ; D49
+HandlePrepareNextLevel:: ; D49
 .world1Tiles
 	di
 	ld a, c
@@ -1935,7 +1935,7 @@ GameState_08:: ; D49
 	inc a
 	ld b, a
 	and a, $0F
-	cp a, $04
+	cp a, 4
 	ld a, b
 	jr nz, .notNextWorld
 	add a, $10 - 3			; Add one to the World after 3 Levels
@@ -2079,7 +2079,7 @@ GameState_1D:: ; E31
 	and a
 	ret nz
 	ldh a, [$FFE0]		; first column past the end
-	sub a, $02			; above gate
+	sub a, 2			; above gate
 	cp a, $40
 	jr nc, .nowrap		; in case of wrap around
 	add a, SCRN_VX_B	; one screen width
@@ -2090,9 +2090,9 @@ GameState_1D:: ; E31
 	add hl, de
 	ld a, l
 	ldh [$FFE0], a		; contains low byte of location of bottom of gate
-	ld a, $05
+	ld a, 5
 	ldh [$FFFC], a		; gate consists of 4 segments (+1 because of shitty logic)
-	ld a, $08
+	ld a, 8
 	ldh [hTimer], a
 	ld hl, hGameState
 	inc [hl]
@@ -2149,8 +2149,8 @@ HandleGateOpen:: ; E96
 	ret
 
 ; Mario walks/flies off screen
-GameState_28::
-GameState_20:: ; EA9
+HandleTatangaDead::
+MarioStartsWalkingOffscreen:: ; EA9
 	call .walkRight
 	ld a, [wMarioPosX]		; mario on screen X
 	cp a, $C0
@@ -2172,7 +2172,7 @@ GameState_20:: ; EA9
 	ret
 
 ; preparing Fake Daisy
-GameState_21:: ; ECD
+HandleMarioWalksOffscreen:: ; ECD
 	ldh a, [hTimer]
 	and a
 	ret nz
@@ -2198,7 +2198,7 @@ GameState_21:: ; ECD
 	and a, $F0
 	ld [hl], a
 	ld hl, $C210
-	ld de, Data_211D
+	ld de, InitialStateData
 	ld b, $10
 .loop
 	ld a, [de]
@@ -2241,7 +2241,7 @@ HandleScrollToDaisy:: ; F12
 	inc [hl]			; 22 → 23
 	ret
 
-GameState_23:: ; F33
+HandleWalkToFakeDaisy:: ; F33
 	ld a, D_RIGHT		; right button
 	ldh [hJoyHeld], a
 	call Call_17BC
@@ -2356,7 +2356,7 @@ ThankYouText::
 	db "oh! daisy@"
 
 ; Fake Daisy morphing
-GameState_25:: ; FFD
+HandleFakeDaisyMorphing:: ; FFD
 	ldh a, [hTimer]
 	and a
 	ret nz
@@ -2407,7 +2407,7 @@ MorphSprite2OAM::
 	db 128, 96, $07, OAMF_XFLIP | OAMF_YFLIP
 
 ; Fake Daisy monster jumping away
-GameState_26:: ; 1055
+HandleFakeDaisyJumpingAway:: ; 1055
 	ldh a, [hTimer]
 	and a
 	ret nz
@@ -2452,11 +2452,11 @@ GameState_26:: ; 1055
 ; the blocks are removed by a constantly rotating bitmask ANDed with the tiles
 ; the bitmask goes
 ; 10111111 → 11100111 → 11101100 → 10001101 → 10100001 → 00100100 → 1000010 → 1000000
-GameState_27::	; 1099
+HandleTatangaDying::	; 1099
 	ldh a, [$FFA7]
 	and a
 	jr nz, .screenShake
-	ld a, 1
+	ld a, SOUND_EXPLOSION
 	ld [wNoiseSFX], a		; explosion sound effect
 	ld a, $20			; one explosion every 32 frames, about half a second
 	ldh [$FFA7], a
@@ -2534,7 +2534,7 @@ GameState_29:: ; 1116
 	ld bc, $0100
 	call EraseTileMap
 	call DrawInitialScreen.drawLevel
-	call GameState_21.prepareMarioAndDaisy
+	call HandleMarioWalksOffscreen.prepareMarioAndDaisy
 	ld hl, wMarioPosX		; mario X position
 	ld [hl], 56
 	inc l
@@ -2559,7 +2559,7 @@ GameState_29:: ; 1116
 	ldh [hTextCursorLo], a
 	ld a, $0F
 	ld [wActiveMusic], a
-	ld a, $C3
+	ld a, %11000011
 	ldh [rLCDC], a
 	ei
 	ld hl, hGameState
@@ -2693,7 +2693,7 @@ QuestOverText::
 	db "-your quest is over-@"
 
 ; Mario & Daisy walking
-GameState_2E::
+HandleMarioAndDaisyWalking::
 	ldh a, [hFrameCounter]
 	and a, 3
 	jr nz, .jmp_1261
@@ -2712,8 +2712,8 @@ GameState_2E::
 	ld a, [hl]
 	cp a, 80
 	jr nz, .checkIfBothAreInSpaceship	; todo name
-	ld a, $80			; Mario "enters" the spaceship (becomes invisible)
-	ld [$C200], a
+	ld a, OAMF_PRI			; Mario "enters" the spaceship (becomes invisible)
+	ld [wMarioFlags], a
 	jr .walkMarioDaisy
 
 .checkIfBothAreInSpaceship
@@ -2726,7 +2726,7 @@ GameState_2E::
 	ld hl, hGameState
 	inc [hl]			; 2E → 2F
 .walkMarioDaisy
-	call GameState_20.walkRight
+	call MarioStartsWalkingOffscreen.walkRight
 	call LoadColumns		; level rendering
 	ldh a, [hScreenIndex]
 	cp a, 3
@@ -2782,7 +2782,7 @@ HandleAirplaneTakingOff:: ; 12C2
 .cruisingAltitude
 	ld hl, hGameState
 	inc [hl]				; 30 → 31
-	ld a, $04
+	ld a, 4
 	ldh [$FFFB], a
 	ret
 
@@ -3013,7 +3013,7 @@ GameState_33:: ; 13C4
 	ret
 
 ; credits entering
-GameState_34::
+HandleCreditsComingUp::
 	call AnimateSpaceshipAndClouds
 	ldh a, [hFrameCounter]
 	and a, 3
@@ -3030,7 +3030,7 @@ GameState_34::
 	ret
 
 
-GameState_35:: ; 145A
+HandleCreditsStandingStill:: ; 145A
 	call AnimateSpaceshipAndClouds
 	ldh a, [hTimer]
 	and a
@@ -3040,7 +3040,7 @@ GameState_35:: ; 145A
 	ret
 
 ; scroll credits up, out of sight
-GameState_36:: ; 1466
+HandleCreditsLeave:: ; 1466
 	call AnimateSpaceshipAndClouds
 	ldh a, [hFrameCounter]
 	and a, 3
@@ -3062,7 +3062,7 @@ GameState_36:: ; 1466
 	ret
 
 ; spaceship flies off, prepare "THE END"
-GameState_37::
+HandleAirplaneLeaving::
 	call AnimateSpaceshipAndClouds
 	ld hl, wMarioPosX		; X position
 	inc [hl]
@@ -3298,7 +3298,7 @@ HandleGoingRightIntoPipe:: ; 166C
 	call DrawInitialScreen		; draw the level
 	pop de
 	ld a, $80
-	ld [$C204], a
+	ld [wC204], a
 	ld hl, wMarioPosY		; mario Y
 	ld a, d
 	ldi [hl], a
@@ -3346,7 +3346,7 @@ HandleGoingUpOutOfPipe:: ; 16DA
 .outOfPipe
 	xor a
 	ldh [hGameState], a
-	ld [$C204], a			; smth to do with mario having control?
+	ld [wC204], a			; smth to do with mario having control?
 	ldh [hIsUnderground], a
 	ret
 
@@ -3395,16 +3395,16 @@ Call_1736::
 	ld hl, $C200
 	ld a, $C0
 	ldh [$FF8D], a
-	ld a, $05
+	ld a, 5
 	ldh [hBoundingBoxRight], a
 	homecall Call_4823
 	ret
 
 ; standing on boss switch
-Jmp_175B:: ; 175B
+MarioStandingOnBossSwitch:: ; 175B
 	ldh a, [hGameState]
-	cp a, $0E
-	jp nc, $181E
+	cp a, STATE_LOAD_MENU
+	jp nc, Call_17BC.jmp_181E
 	jp Jmp_1B45				; Mario wins
 
 ; Called every frame when standing on a pipe?
@@ -3468,7 +3468,7 @@ MarioStandingOnPipe:: ; 1765
 Call_17BC:: ; 17BC
 	ld hl, wJumpStatus			; jump status
 	ld a, [hl]
-	cp a, $01
+	cp a, 1
 	ret z
 	ld hl, wMarioPosY			; Y pos
 	ldi a, [hl]
@@ -3478,18 +3478,18 @@ Call_17BC:: ; 17BC
 	ld b, a
 	ld a, [hl]
 	add b
-	add a, $FE				; -2?
+	add a, -2				; -2?
 	ldh [$FFAE], a
 	call LookupTile
-	cp a, $70				; standing on pipe
+	cp a, BLOCK_PIPE_OPENING		; standing on pipe
 	jr z, MarioStandingOnPipe
 	cp a, $E1				; boss switch
-	jp z, Jmp_175B			; can this be a JR?
+	jp z, MarioStandingOnBossSwitch			; can this be a JR?
 	cp a, $60				; solid tiles
 	jr nc, .jmp_181E		; why is this a JP? Bug?
 	ld a, [$C20E]			; 02 walking, 04 running
-	ld b, $04
-	cp a, $04
+	ld b, 4
+	cp a, 4
 	jr nz, .jmp_17F5
 	ld a, [wJumpStatus]			; jump status
 	and a
@@ -3505,7 +3505,7 @@ Call_17BC:: ; 17BC
 .jmp_1801
 	ld hl, wJumpStatus
 	ld a, [hl]
-	cp a, $02
+	cp a, 2
 	ret z					; return if descending
 	ld hl, wMarioPosY			; Y pos
 	inc [hl]
@@ -3516,7 +3516,7 @@ Call_17BC:: ; 17BC
 	ld a, [$C20E]
 	and a
 	ret nz
-	ld a, $02
+	ld a, 2
 	ld [$C20E], a
 	ret
 
@@ -3558,7 +3558,7 @@ Call_17BC:: ; 17BC
 	ld [hl], d
 	inc l
 	ld [hl], e
-	ld a, $05
+	ld a, SOUND_COIN
 	ld [wSquareSFX], a			; coin sound
 	jr .jmp_1801
 
@@ -3568,7 +3568,7 @@ Jmp_185D
 	dec a
 	dec a
 	and a, $FC				; erase 0000 0011
-	or a, $06				; set   0000 0110
+	or a, 6				; set   0000 0110
 	ld [hl], a
 	xor a
 	ld hl, wJumpStatus		; jump status
@@ -3576,11 +3576,11 @@ Jmp_185D
 	ldi [hl], a				; C208 
 	ldi [hl], a				; C209
 	ld [hl], 1				; C20A 1 if mario on the ground
-	ld hl, $C20C			; C20C Momentum
+	ld hl, wMarioMomentum			; C20C Momentum
 	ld a, [hl]
-	cp a, $07
+	cp a, 7
 	ret c
-	ld [hl], $06
+	ld [hl], 6
 	ret
 
 ; hidden block
@@ -3619,10 +3619,10 @@ Jmp_185D
 	ldh a, [$FFEE]
 	and a
 	ret nz
-	ld a, $05
+	ld a, SOUND_COIN
 	ld [wSquareSFX], a			; coin sound effect
 	ld a, [wMarioPosY]			; Y pos
-	sub a, $10
+	sub a, 16
 	ldh [hFloatyY], a
 	ld a, $C0
 	ldh [hFloatyControl], a
@@ -3639,7 +3639,7 @@ Jmp_185D
 	ldh [hBoundingBoxTop], a
 	ld a, $80
 	ld [wOAMBuffer + 4 * $B + 2], a
-	ld a, $07
+	ld a, SOUND_BUMP
 	ld [wSquareSFX], a			; bump sound effect
 	push hl
 	pop de
@@ -3865,7 +3865,7 @@ Jmp_185D
 	ld [hl], $0B
 	ldh a, [hScrollX]
 	ldh [$FFF3], a
-	ld a, 2
+	ld a, SOUND_BLOCK_BREAKING
 	ld [wNoiseSFX], a			; breaking block sound effect
 	ld de, $0050
 	call AddScore
@@ -3963,7 +3963,7 @@ Call_1AAD:: ; 1AAD
 	ldi a, [hl] 			; The Y pos is about 10 px above Mario's feet
 	add d					; so look about 7px lower first iteration?
 	ldh [$FFAD], a
-	ld a, [$C205]			; dir facing
+	ld a, [wMarioFacingDir]			; dir facing
 	ld b, [hl]				; X pos
 	ld c, -6				; mario is 12 pixels wide?
 	and a
@@ -4019,7 +4019,7 @@ Call_1AAD:: ; 1AAD
 	ld [hl], d
 	inc l
 	ld [hl], e				; store block address in FFEF-FFF0
-	ld a, 5
+	ld a, SOUND_COIN
 	ld [wSquareSFX], a			; coin sound effect
 	xor a
 	ret
@@ -4031,7 +4031,7 @@ Call_1AAD:: ; 1AAD
 	ld a, $0B
 	ldh [hGameState], a
 	ld a, $80
-	ld [$C204], a		; mario in control?
+	ld [wC204], a		; mario in control?
 	ld hl, wMarioPosX		; X pos
 	ldd a, [hl]
 	add a, $18
@@ -4077,7 +4077,7 @@ Jmp_1B45:: ; 1B45
 .jmp_1B79
 	call ClearSprites
 	xor a
-	ld [$C200], a		; make mario visible again?
+	ld [wMarioFlags], a		; make mario visible again?
 	ld [wGameTimerExpiringFlag], a
 	ldh [rTMA], a
 	ret
@@ -4134,7 +4134,7 @@ BlockCollision:: ; 1B86
 	cp a, $F4			; coin "$"
 	ret nz
 	ld [hl], " "		; remove it
-	ld a, 5
+	ld a, SOUND_COIN
 	ld [wSquareSFX], a		; todo sound effect
 	ld a, h
 	ld [$FFB0], a
@@ -4342,7 +4342,7 @@ HandleTimesUp:: ; 1D1D
 
 ; called every frame
 MoveMario::
-	ld hl, $C20D		; mario going left (20) or right (10), changing dir (01)??
+	ld hl, wMarioWalkingDir		; mario going left (20) or right (10), changing dir (01)??
 	ld a, [hl]
 	cp a, 1				; changing direction?
 	jr nz, .notReversing
@@ -4358,7 +4358,7 @@ MoveMario::
 	dec [hl]			; decrease C20C, momentum?
 	ret
 .notReversing
-	ld hl, $C20C		; momentum?
+	ld hl, wMarioMomentum		; momentum?
 	ldi a, [hl]
 	cp a, $06			; max momentum
 	jr nz, .jmp_1D49
@@ -4377,7 +4377,7 @@ MoveMario::
 	jr nz, .rightButton
 	bit D_LEFT_BIT, a			; left button
 	jp nz, .leftButton
-	ld hl, $C20C		; speed?
+	ld hl, wMarioMomentum		; speed?
 	ld a, [hl]
 	and a
 	jr z, .jmp_1D6B
@@ -4419,7 +4419,7 @@ MoveMario::
 	ldh a, [hJoyHeld]
 	and a, D_LEFT | D_RIGHT	; test bits left and right button
 	jr nz, .jmp_1DA6
-	ld a, [$C20C]		; momentum?
+	ld a, [wMarioMomentum]		; momentum?
 	and a
 	jr z, .jmp_1DA6
 .skipCrouch
@@ -4427,19 +4427,19 @@ MoveMario::
 	jr .checkDirectionalKeys	; neither left nor right are being held
 .jmp_1DA6
 	xor a				; no stopping animation going into crouch?
-	ld [$C20C], a		; speed?
+	ld [wMarioMomentum], a		; speed?
 	pop af
 	ret
 
 .rightButton
-	ld hl, $C20D		; walking dir
+	ld hl, wMarioWalkingDir		; walking dir
 	ld a, [hl]
 	cp a, $20
 	jr nz, .skip
 	jp .reverseDirection	; too far to do a JR
 
 .skip
-	ld hl, $C205		; dir facing
+	ld hl, wMarioFacingDir		; dir facing
 	ld [hl], $00		; facing right
 	call Call_1AAD
 	and a
@@ -4456,12 +4456,12 @@ MoveMario::
 	or a, $01
 	ld [wAnimIndex], a		; first animation?
 .jmp_1DD8
-	ld hl, $C20C		; ...
+	ld hl, wMarioMomentum		; ...
 	ld a, [hl]
 	cp a, $06
 	jr z, .jmp_1DE4
 	inc [hl]			; increase momentum
-	inc l				; $C20D left right changing dir
+	inc l				; wMarioWalkingDir left right changing dir
 	ld [hl], $10		; going right
 .jmp_1DE4
 	ld hl, wMarioPosX		; on screen X pos
@@ -4519,7 +4519,7 @@ MoveMario::
 	jp Jmp_1B45			; huh?
 
 .leftButton
-	ld hl, $C20D		; walking dir
+	ld hl, wMarioWalkingDir		; walking dir
 	ld a, [hl]
 	cp a, $10			; walking right
 	jr nz, .jmp_1E61
@@ -4539,7 +4539,7 @@ MoveMario::
 	ld [$C20B], a		; restart animation counter
 	ret
 .jmp_1E61
-	ld hl, $C205		; dir facing
+	ld hl, wMarioFacingDir		; dir facing
 	ld [hl], $20		; facing left
 	call Call_1AAD
 	and a
@@ -4560,7 +4560,7 @@ MoveMario::
 	or a, 1
 	ld [wAnimIndex], a
 .jmp_1E8B
-	ld hl, $C20C		; speed?
+	ld hl, wMarioMomentum		; speed?
 	ld a, [hl]
 	cp a, $06
 	jr z, .jmp_1E97
@@ -4661,16 +4661,16 @@ Call_1F03:: ; 1F03
 	jr z, .endOfInvincibility
 	dec a
 	ld [wInvincibilityTimer], a
-	ld a, [$C200]
+	ld a, [wMarioFlags]
 	xor a, $80			; blink Mario 7.5 times per second
-	ld [$C200], a
+	ld [wMarioFlags], a
 	ld a, [$DFE9]		; currently playing song
 	and a
 	ret nz				; invincibility stops when the timer runs out,
 .endOfInvincibility		; or the song stops
 	xor a
 	ld [wInvincibilityTimer], a
-	ld [$C200], a		; mario visible
+	ld [wMarioFlags], a		; mario visible
 	call StartLevelMusic
 	ret
 
@@ -4821,7 +4821,7 @@ FindNeighboringTile::	; gets called in autoscroll from 514F?
 	ld [hl], d
 	inc l
 	ld [hl], e
-	ld a, $05
+	ld a, SOUND_COIN
 	ld [wSquareSFX], a		; coin sound effect
 .checkForBreakableBlock
 	cp a, $82			; breakable block
@@ -4917,7 +4917,7 @@ Call_200A::
 	pop af
 	cp a, $FF
 	jr nz, .jmp_2083
-	ld a, 3
+	ld a, SOUND_STOMP
 	ld [wSquareSFX], a			; enemy dieing sound effect
 	ldh a, [$FF9E]
 	ldh [hFloatyControl], a
@@ -5027,8 +5027,9 @@ Call_2113:: ; 2113
 	ldh [hJoyHeld], a
 	ret
 
-Data_211D::
+InitialStateData::
 	; C200. Mario's position, state, animation etc..
+	;  attr  Y    X    sprite    flip           TTL
 	db $00, $86, $32, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00
 	; C210 - C240. Fragments from breakable block, clouds, Daisy, spaceship
 	;       Y    X    sprite    flip           TTL
@@ -6249,11 +6250,11 @@ Call_2648:: ; 2648
 	ldh a, [$FFCB]
 	and a
 	jp z, .jmp_2975
-	ld a, [$C205]		; dir mario is facing?
+	ld a, [wMarioFacingDir]		; dir mario is facing?
 	ld c, a
 	push bc
 	ld a, $20			; 20 if facing left
-	ld [$C205], a
+	ld [wMarioFacingDir], a
 	call Call_1AAD		; Mario side collision
 	pop bc
 	and a
@@ -6267,7 +6268,7 @@ Call_2648:: ; 2648
 	ld [wMarioPosX], a
 .jmp_28C7
 	ld a, c
-	ld [$C205], a
+	ld [wMarioFacingDir], a
 	jp .jmp_2975
 
 .jmp_28CE
@@ -6309,11 +6310,11 @@ Call_2648:: ; 2648
 	ldh a, [$FFCB]
 	and a
 	jr z, .jmp_2975
-	ld a, [$C205]		; direction mario is facing
+	ld a, [wMarioFacingDir]		; direction mario is facing
 	ld c, a
 	push bc
 	xor a
-	ld [$C205], a
+	ld [wMarioFacingDir], a
 	call Call_1AAD		; mario collision?
 	pop bc
 	and a
@@ -6338,7 +6339,7 @@ Call_2648:: ; 2648
 	call ScrollEnemiesByB		; scroll enemies
 .jmp_2944
 	ld a, c
-	ld [$C205], a
+	ld [wMarioFacingDir], a
 	jr .jmp_2975
 
 .jmp_294A
