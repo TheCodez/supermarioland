@@ -64,7 +64,7 @@ wWinCount:: ; C0E1
 ds $C200 - $C0E2
 
 wLevelData:: ; C200
-wMarioFlags:: ; C200
+wMarioVisible:: ; C200
 	ds 1
 
 wMarioPosY::  ; C201
@@ -116,7 +116,7 @@ wC20E:: ; C20E
 wC20F:: ; C20F
 	ds 1
 
-wEntityFlags:: ; C210
+wEntityVisible:: ; C210
 	ds 1
 
 wEntityPosY:: ; C211

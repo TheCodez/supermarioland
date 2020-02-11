@@ -682,7 +682,7 @@ HandleStartMenu::
 	ld [rIE], a
 	ret
 
-; TODO more random data... Demo levels: 1-1, 1-2, 3-3
+; more random data... Demo levels: 1-1, 1-2, 3-3
 DemoLevels:: ; 569
 	db $11, $00, $12, $01, $33, $08
 
@@ -722,9 +722,9 @@ HandleStartLevel::	; 576
 	ld a, (1 << rTAC_ON) | rTAC_16384_HZ
 	ldh [rTAC], a
 	ld hl, rWY
-	ld [hl], $85
+	ld [hl], 133
 	inc l			; rWX
-	ld [hl], $60	; bottom right corner
+	ld [hl], 96	; bottom right corner
 	xor a
 	ldh [rTMA], a
 	ldh [rIF], a
@@ -733,7 +733,7 @@ HandleStartLevel::	; 576
 	ldh [$FFB1], a
 	ld a, $5B
 	ldh [$FFE9], a
-	call Call_2442		; superfluous? happens in HandlePrepareNextLevel.loadWorldTiles?
+	call SetIsBackgroundAnimated		; superfluous? happens in HandlePrepareNextLevel.loadWorldTiles?
 	call Call_3D1A		; todo
 	call DisplayCoins
 	call UpdateLives.displayLives
@@ -744,7 +744,7 @@ UnusedState:: ; 5CE Unused?
 	ret
 
 ClearBGMap0:: ; 05CF
-	ld hl, vBGMap0 + 31 * SCRN_VX_B + 31 ; $9BFF
+	ld hl, $9BFF
 	ld bc, SCRN_VX_B * SCRN_VY_B
 
 EraseTileMap:: ; 5D5
@@ -1378,8 +1378,8 @@ KillMario:: ; 9F1
 	ldh [rTMA], a
 	ld a, 2
 	ld [wActiveMusic], a			; sound effect
-	ld a, $80                   ; make mario invisible
-	ld [wMarioFlags], a
+	ld a, SPRITE_HIDDEN             ; make mario invisible
+	ld [wMarioVisible], a
 	ld a, [wMarioPosY]			; Mario Y pos
 	ld [wMarioDeathY], a			; death Y pos?
 	ret
@@ -1554,7 +1554,7 @@ BoundingBoxCollision:: ; AAF
 ; has to do with Mario riding on platforms and blocks
 Call_AEA:: ; AEA
 	ld a, [wJumpStatus]		; jump status
-	cp a, 1
+	cp a, MARIO_ASCENDING
 	ret z
 	ld de, $0010
 	ld b, $0A
@@ -1682,7 +1682,7 @@ PrepareDeath:: ; B8D
 	ldi [hl], a				; X position
 	ld [hl], $0F			; todo mario dying object top
 	inc l
-	ld [hl], $00			; OAM bits
+	ld [hl], SPRITE_NO_FLIP	; OAM bits
 	inc l
 	ld [hl], c				; Y position
 	inc l
@@ -1690,7 +1690,7 @@ PrepareDeath:: ; B8D
 	inc l
 	ld [hl], $1F			; bottom dying object
 	inc l
-	ld [hl], $00			; OAM, flip
+	ld [hl], SPRITE_NO_FLIP	; OAM, flip
 	inc l
 	ld [hl], d				; Y position
 	inc l
@@ -1700,7 +1700,7 @@ PrepareDeath:: ; B8D
 	ldi [hl], a				; X position
 	ld [hl], $0F			; top right dying mario object (mirrored)
 	inc l
-	ld [hl], OAMF_XFLIP 	; OAM X flip
+	ld [hl], SPRITE_XFLIP 	; OAM X flip
 	inc l
 	ld [hl], c				; Y position
 	inc l
@@ -1708,7 +1708,7 @@ PrepareDeath:: ; B8D
 	inc l
 	ld [hl], $1F			; bottom dying object
 	inc l
-	ld [hl], OAMF_XFLIP 	; OAM X flip
+	ld [hl], SPRITE_XFLIP 	; OAM X flip
 	ld a, STATE_DYING		; dying animation
 	ldh [hGameState], a
 	xor a
@@ -2025,7 +2025,7 @@ HandlePrepareNextLevel:: ; D49
 	ldh [hIsUnderground], a
 	ld a, STATE_RESET_TO_CHECKPOINT
 	ldh [hGameState], a
-	call Call_2442
+	call SetIsBackgroundAnimated
 	ret
 
 ; todo
@@ -2189,23 +2189,24 @@ HandleMarioWalksOffscreen:: ; ECD
 	ret
 
 .prepareMarioAndDaisy::
-	ld hl, wMarioPosY		; mario y position
+	ld hl, wMarioPosY	; mario y position
 	ld [hl], 126
 	inc l
 	ld [hl], 176		; mario x
 	inc l
-	ld a, [hl]			; C203
+	ld a, [hl]			; anim index
 	and a, $F0
 	ld [hl], a
 	ld hl, $C210
 	ld de, InitialStateData
-	ld b, $10
+	ld b, 16
 .loop
 	ld a, [de]
 	ldi [hl], a
 	inc de
 	dec b
 	jr nz, .loop
+
 	ld hl, wEntityPosY
 	ld [hl], 126		; object Y pos?
 	inc l
@@ -2214,7 +2215,7 @@ HandleMarioWalksOffscreen:: ; ECD
 	ld [hl], $22		; Daisy :)
 	inc l
 	inc l
-	ld [hl], OAMF_XFLIP	; flipped
+	ld [hl], SPRITE_XFLIP	; flipped
 	ret
 
 
@@ -2279,8 +2280,8 @@ HandleFakeDaisySpeaking:: ; F6A
 	ret nz
 	ld hl, hGameState
 	inc [hl]		; 24 → 25
-	ld a, OAMF_PRI
-	ld [wEntityFlags], a	; make sprite invisible
+	ld a, SPRITE_HIDDEN
+	ld [wEntityVisible], a	; make sprite invisible
 	ld a, 8
 	ldh [hTimer], a
 	ld a, 8
@@ -2377,8 +2378,8 @@ HandleFakeDaisyMorphing:: ; FFD
 	ret
 
 .nextState
-	ld hl, wEntityFlags
-	ld [hl], 0		; make sprite visible
+	ld hl, wEntityVisible
+	ld [hl], SPRITE_VISIBLE		; make sprite visible
 	ld hl, hGameState
 	inc [hl]			; 25 → 26
 	ret
@@ -2396,15 +2397,15 @@ HandleFakeDaisyMorphing:: ; FFD
 
 MorphSprite1OAM::
 	db 120, 88, $06, $00
-	db 120, 96, $06, OAMF_XFLIP
-	db 128, 88, $06, OAMF_YFLIP
-	db 128, 96, $06, OAMF_XFLIP | OAMF_YFLIP
+	db 120, 96, $06, SPRITE_XFLIP
+	db 128, 88, $06, SPRITE_YFLIP
+	db 128, 96, $06, SPRITE_XFLIP | SPRITE_YFLIP
 
 MorphSprite2OAM::
 	db 120, 88, $07, $00
-	db 120, 96, $07, OAMF_XFLIP
-	db 128, 88, $07, OAMF_YFLIP
-	db 128, 96, $07, OAMF_XFLIP | OAMF_YFLIP
+	db 120, 96, $07, SPRITE_XFLIP
+	db 128, 88, $07, SPRITE_YFLIP
+	db 128, 96, $07, SPRITE_XFLIP | SPRITE_YFLIP
 
 ; Fake Daisy monster jumping away
 HandleFakeDaisyJumpingAway:: ; 1055
@@ -2712,15 +2713,15 @@ HandleMarioAndDaisyWalking::
 	ld a, [hl]
 	cp a, 80
 	jr nz, .checkIfBothAreInSpaceship	; todo name
-	ld a, OAMF_PRI			; Mario "enters" the spaceship (becomes invisible)
-	ld [wMarioFlags], a
+	ld a, SPRITE_HIDDEN			; Mario "enters" the spaceship (becomes invisible)
+	ld [wMarioVisible], a
 	jr .walkMarioDaisy
 
 .checkIfBothAreInSpaceship
 	cp a, $40
 	jr nz, .walkMarioDaisy
-	ld a, OAMF_PRI
-	ld [wEntityFlags], a		; Daisy "enters" the spaceship
+	ld a, SPRITE_HIDDEN
+	ld [wEntityVisible], a		; Daisy "enters" the spaceship
 	ld a, $40
 	ldh [hTimer], a		; 40 frames, 2/3 second
 	ld hl, hGameState
@@ -3760,7 +3761,7 @@ Jmp_185D
 
 .call_198C
 	ld a, [wJumpStatus]			; jump status
-	cp a, 1						; ascending
+	cp a, MARIO_ASCENDING		; ascending
 	ret nz
 	ld hl, wMarioPosY
 	ldi a, [hl]
@@ -4077,7 +4078,7 @@ Jmp_1B45:: ; 1B45
 .jmp_1B79
 	call ClearSprites
 	xor a
-	ld [wMarioFlags], a		; make mario visible again?
+	ld [wMarioVisible], a		; make mario visible again?
 	ld [wGameTimerExpiringFlag], a
 	ldh [rTMA], a
 	ret
@@ -4661,16 +4662,16 @@ Call_1F03:: ; 1F03
 	jr z, .endOfInvincibility
 	dec a
 	ld [wInvincibilityTimer], a
-	ld a, [wMarioFlags]
-	xor a, $80			; blink Mario 7.5 times per second
-	ld [wMarioFlags], a
+	ld a, [wMarioVisible]
+	xor a, SPRITE_HIDDEN ; blink Mario 7.5 times per second
+	ld [wMarioVisible], a
 	ld a, [$DFE9]		; currently playing song
 	and a
 	ret nz				; invincibility stops when the timer runs out,
 .endOfInvincibility		; or the song stops
 	xor a
 	ld [wInvincibilityTimer], a
-	ld [wMarioFlags], a		; mario visible
+	ld [wMarioVisible], a		; mario visible
 	call StartLevelMusic
 	ret
 
@@ -5029,17 +5030,18 @@ Call_2113:: ; 2113
 
 InitialStateData::
 	; C200. Mario's position, state, animation etc..
-	;  attr  Y    X    sprite    flip           TTL
-	db $00, $86, $32, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00
+	;  vis  			Y    X   spr  	  flip		    		  jmp state
+	db SPRITE_VISIBLE, 134, 50, $00, $00, SPRITE_NO_FLIP, $00, MARIO_ON_GROUND, $00, $00
+	ds 6
 	; C210 - C240. Fragments from breakable block, clouds, Daisy, spaceship
-	;       Y    X    sprite    flip           TTL
-	db $01, $00, $00, $0F, $00, $00, $00, $00, $00
+	;       Y  X   sprite    flip           TTL
+	db $01, 0, 0, $0F, $00, $00, $00, $00, $00
 	ds 7
-	db $01, $00, $00, $0F, $00, $20, $00, $00, $00
+	db $01, 0, 0, $0F, $00, SPRITE_XFLIP, $00, $00, $00
 	ds 7
-	db $01, $00, $00, $0F, $00, $00, $00, $00, $00
+	db $01, 0, 0, $0F, $00, SPRITE_NO_FLIP, $00, $00, $00
 	ds 7
-	db $01, $00, $00, $0F, $00, $20, $00, $00, $00
+	db $01, 0, 0, $0F, $00, SPRITE_XFLIP, $00, $00, $00
 	ds 7
 
 Data_216D::	 ; jumping "parabola"?
@@ -5496,7 +5498,7 @@ AnimateBackground:: ; 2401
 	add hl, de
 .copyTile
 	ld de, $95D1		; only this tile is animated
-	ld b, $08
+	ld b, 8
 .loop
 	ldi a, [hl]
 	ld [de], a
@@ -5511,7 +5513,7 @@ LevelsWithAnimatedBackground::
 	db 0, 0, 1, 1, 1, 0, 0, 1, 1, 0, 1, 0
 
 ; wBackgroundAnimated is clear. But what are the other variables?
-Call_2442::
+SetIsBackgroundAnimated::
 	ld a, $0C
 	ld [$C0AB], a
 	call InitEnemySlots
