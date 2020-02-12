@@ -196,7 +196,7 @@ def dump_segment(segment_pointer, next_ptr):
             elif byte & 0xF0 == 0xA0:
                 data += "\tdb $%02X\n" % byte
             elif byte == 0x00:
-                data += "\tdb $00\n"
+                data += "\tEndSegment\n"
 
     music_data[segment_pointer] = data
 

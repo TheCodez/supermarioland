@@ -15,7 +15,9 @@ wScore::	; C0A0
 wLivesEarnedLost::
 	ds 1	; C0A3
 
-ds 1		; C0A4
+; $38 if game over, zero otherwise
+wIsGameOver::		; C0A4
+	ds 1
 
 wGameOverWindowEnabled :: ; C0A5
 	db
@@ -46,7 +48,20 @@ ds $C0D3 - $C0C3
 wInvincibilityTimer:: ; C0D3
 	db
 
-ds $C0DD - $C0D4
+wC0D4:: ; C0D4
+	ds 1
+
+wC0D5:: ; C0D5
+	ds 1
+
+wC0D6:: ; C0D6
+	ds 1
+
+wDemoTimer:: ; C0D7
+	ds 1
+
+
+ds $C0DD - $C0D8
 
 wMarioDeathY:: ; C0DD
 	ds 1

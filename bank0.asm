@@ -1,7 +1,7 @@
 INCLUDE "charmap.asm"
 INCLUDE "constants.asm"
 INCLUDE "sound_constants.asm"
-INCLUDE "gbhw.asm"
+INCLUDE "hardware.inc"
 INCLUDE "vram.asm"
 INCLUDE "wram.asm"
 INCLUDE "hram.asm"
@@ -49,7 +49,7 @@ AddScore:: ; 0166
 	ret
 
 Init::	; 0185
-	ld a, (1 << VBLANK) | (1 << LCD_STAT)
+	ld a, IEF_VBLANK | IEF_LCDC
 	di
 	ldh [rIF], a
 	ldh [rIE], a
@@ -59,14 +59,14 @@ Init::	; 0185
 	ldh [rSCY], a
 	ldh [rSCX], a
 	ldh [$A4], a
-	ld a, %10000000
+	ld a, LCDCF_ON
 	ldh [rLCDC], a	; Turn LCD on, but don't display anything
 .waitVBlank
 	ldh a, [rLY]
 	cp a, SCRN_Y + 4 ; $94
 	jr nz, .waitVBlank	; Waits for VBlank?
 	
-	ld a, %00000011
+	ld a, LCDCF_OBJON | LCDCF_BGON
 	ldh [rLCDC], a	; Turn LCD off
 	ld a, $E4
 	ldh [rBGP], a
@@ -122,7 +122,7 @@ Init::	; 0185
 	ld hl, DMARoutine
 .copyDMAroutine		; No memory can be accessed during DMA other than HRAM,
 	ld a, [hli]		; so the routine is copied and executed there
-	ld [$FF00+c], a
+	ldh [c], a
 	inc c
 	dec b
 	jr nz, .copyDMAroutine
@@ -138,7 +138,7 @@ Init::	; 0185
 	ldh [hGameState], a
 	ld a, BANK(InitSound) ; 3
 	ld [MBC1RomBank], a
-	ld [$C0A4], a
+	ld [wIsGameOver], a
 	ld a, 0
 	ld [wWinCount], a
 	ldh [hWinCount], a
@@ -176,16 +176,16 @@ Init::	; 0185
 	inc l
 	dec b
 	jr nz, .nextTimer
-	ldh a, [$FF9F]		; Equal to 28 in menu and during demo
+	ldh a, [$FF9F]		; Equal to $28 in menu and during demo
 	and a
 	jr z, .run
 	ldh a, [hJoyHeld]
-	bit START_BIT, a			; test for Start
+	bit PADB_START, a			; test for Start
 	jr nz, .startGame
 	ldh a, [hFrameCounter] ; todo
 	and a, $0F
 	jr nz, .run
-	ld hl, $C0D7
+	ld hl, wDemoTimer
 	ld a, [hl]
 	and a
 	jr z, .startGame
@@ -421,7 +421,7 @@ InitMenu::
 	ld [hl], $AC	; mushroom/mario head
 	xor a
 	ldh [rIF], a	; Clear all interrupts
-	ld a, %11000011
+	ld a, LCDCF_ON | LCDCF_WIN9C00 | LCDCF_OBJON | LCDCF_BGON
 	ldh [rLCDC], a	; Turn on LCD, BG, sprites, and change WIN tile map
 	ei
 	ld a, STATE_MENU
@@ -429,7 +429,7 @@ InitMenu::
 	xor a
 	ldh [hIsUnderground], a
 	ld a, $28
-	ld [$C0D7], a
+	ld [wDemoTimer], a
 	ldh [$FF9F], a
 	ld hl, $C0DC
 	inc [hl]
@@ -518,15 +518,15 @@ HandleStartMenu::
 .entryPoint::
 	ldh a, [hJoyPressed]
 	ld b, a
-	bit START_BIT, b		; START button
+	bit PADB_START, b		; PADF_START button
 	jr nz, .startPressed
-	bit SELECT_BIT, b		; SELECT button
+	bit PADB_SELECT, b		; SELECT button
 	jr nz, .selectPressed
 .checkLevelSelect
 	ldh a, [hWinCount]
 	cp a, 2
 	jr c, .checkDemoTimer
-	bit A_BUTTON_BIT, b		; A button
+	bit PADB_A, b		; A button
 	jr z, .drawLevelSelect
 	ldh a, [hWorldAndLevel]	; increment the level select
 	inc a			; Level
@@ -574,7 +574,7 @@ HandleStartMenu::
 	inc l
 	ld [hl], "-"
 .checkDemoTimer
-	ld a, [$C0D7]	; Demo timer
+	ld a, [wDemoTimer]	; Demo timer
 	and a
 	ret nz
 	ld a, [$C0DC]	; Demo select
@@ -588,7 +588,7 @@ HandleStartMenu::
 	ld a, [hl]
 	ldh [hLevelIndex], a	; level index and encoding
 	ld a, $50
-	ld [$C0D7], a	; timer
+	ld [wDemoTimer], a	; timer
 	ld a, STATE_START_LEVEL
 	ldh [hGameState], a
 	xor a
@@ -601,7 +601,7 @@ HandleStartMenu::
 	xor a
 	ldh [rIF], a
 	ldh [$FF9F], a
-	ld [$C0A4], a
+	ld [wIsGameOver], a
 	dec a
 	ld [wPlaySong], a
 	ld a, BANK(InitSound)
@@ -654,7 +654,7 @@ HandleStartLevel::	; 576
 	call PrepareHUD
 	ld a, 15
 	ldh [rLYC], a	; height of the hud?
-	ld a, (1 << rTAC_ON) | rTAC_16384_HZ
+	ld a, (1 << 2) | TACF_16KHZ
 	ldh [rTAC], a
 	ld hl, rWY
 	ld [hl], 133
@@ -745,19 +745,19 @@ HandleGamePlay::	; 627
     ld [MBC1RomBank], a
     call $48FC
     ld bc, wC208
-    ld hl, Data_216D
+    ld hl, JumpingCurve
     call Call_490D
     ld bc, $C218
-    ld hl, Data_216D
+    ld hl, JumpingCurve
     call Call_490D
     ld bc, $C228
-    ld hl, Data_216D
+    ld hl, JumpingCurve
     call Call_490D
     ld bc, $C238
-    ld hl, Data_216D
+    ld hl, JumpingCurve
     call Call_490D
     ld bc, $C248
-    ld hl, Data_216D
+    ld hl, JumpingCurve
     call Call_490D
     call $4A94
     call $498B
@@ -820,7 +820,7 @@ HandleDeath::
 
 ResetToCheckpoint::
 	di
-	ld a, 0
+	ld a, LCDCF_OFF
 	ldh [rLCDC], a
 	call ClearSprites		; clears sprites
 	call ClearOverlay		; clears "overlay"
@@ -888,7 +888,7 @@ ResetToCheckpoint::
 	xor a
 	ldh [hGameState], a
 	ld [wInvincibilityTimer], a
-	ld a, $C3
+	ld a, LCDCF_ON | LCDCF_WIN9C00 | LCDCF_OBJON | LCDCF_BGON
 	ldh [rLCDC], a
 	call StartLevelMusic
 	xor a
@@ -941,7 +941,7 @@ StartLevelMusic::
 	and a
 	jr nz, .underground
 	ldh a, [hLevelIndex]
-	ld hl, .musicByLevel
+	ld hl, MusicByLevel
 	ld e, a
 	ld d, $00
 	add hl, de
@@ -954,7 +954,7 @@ StartLevelMusic::
 	ld [wPlaySong], a
 	ret
 
-.musicByLevel
+MusicByLevel::
 	db 7, 7, 3
 	db 8, 8, 5
 	db 7, 3, 3
@@ -962,14 +962,14 @@ StartLevelMusic::
 
 pauseOrReset:: ; 7DA
 	ldh a, [hJoyHeld]
-	and a, A_BUTTON | B_BUTTON | START | SELECT
-	cp a, A_BUTTON | B_BUTTON | START | SELECT
+	and a, PADF_A | PADF_B | PADF_START | PADF_SELECT
+	cp a, PADF_A | PADF_B | PADF_START | PADF_SELECT
 	jr nz, .noReset
 	jp Init				; if at any point A+B+Start+Select are pressed, reset
 
 .noReset
 	ldh a, [hJoyPressed]
-	bit START_BIT, a			; start button bit. (Un)Pause the game!
+	bit PADB_START, a			; start button bit. (Un)Pause the game!
 	ret z
 	ldh a, [hGameState]
 	cp a, STATE_LOAD_MENU
@@ -1329,8 +1329,8 @@ Call_A10::
 	srl a
 	srl a				; put two upper bits in lowest position
 	ld e, a
-	ld d, $00
-	ld hl, .data_A29
+	ld d, 0
+	ld hl, Data_A29
 	add hl, de
 	ld a, [hl]
 	ldh [$FF9E], a
@@ -1338,7 +1338,7 @@ Call_A10::
 	pop hl
 	ret
 
-.data_A29
+Data_A29::
 ; corresponding top nibbles
 ;      0-3  4-7  8-B  C-F
 	db $01, $04, $08, $50
@@ -1387,7 +1387,7 @@ Call_A2D:: ; A2D
 	ld a, $14
 	sub b
 	jr c, .noHit		; but not too much above the player either
-	cp a, 7			; A contains $14 - (playerY - enemyY) and has to be < 7
+	cp a, 7				; A contains $14 - (playerY - enemyY) and has to be < 7
 	jr nc, .noHit		; meaning playerY - enemyY has to be at least $D
 	inc l
 	ld a, c				; c contains the width + height
@@ -1522,7 +1522,7 @@ Call_AEA:: ; AEA
 .loopT
 	dec b
 	jr z, .break		; decrement before subtracting tile height, as the Y pos
-	sub a, $08			; already corresponds to the top bound
+	sub a, 8			; already corresponds to the top bound
 	jr .loopT
 
 .break
@@ -1950,7 +1950,7 @@ HandlePrepareNextLevel:: ; D49
 .out
 	xor a
 	ldh [rIF], a
-	ld a, %11000011 ; $C3
+	ld a, LCDCF_ON | LCDCF_WIN9C00 | LCDCF_OBJON | LCDCF_BGON
 	ldh [rLCDC], a
 	ei
 	ld a, 3
@@ -1980,7 +1980,7 @@ HandleLeaveBonusGame:: ; DF9
 	call UpdateLives.displayLives
 	xor a
 	ldh [rIF], a
-	ld a, %11000011 ; $C3
+	ld a, LCDCF_ON | LCDCF_WIN9C00 | LCDCF_OBJON | LCDCF_BGON
 	ldh [rLCDC], a
 	ei
 	ld a, STATE_8
@@ -2178,7 +2178,7 @@ HandleScrollToDaisy:: ; F12
 	ret
 
 HandleWalkToFakeDaisy:: ; F33
-	ld a, D_RIGHT		; right button
+	ld a, PADF_RIGHT		; right button
 	ldh [hJoyHeld], a
 	call Call_17BC
 	call Call_16F5
@@ -2316,7 +2316,7 @@ HandleFakeDaisyMorphing:: ; FFD
 	ld hl, wEntityVisible
 	ld [hl], SPRITE_VISIBLE		; make sprite visible
 	ld hl, hGameState
-	inc [hl]			; 25 → 26
+	inc [hl]					; 25 → 26
 	ret
 
 .writeSprite
@@ -2331,13 +2331,13 @@ HandleFakeDaisyMorphing:: ; FFD
 	ret
 
 MorphSprite1OAM::
-	db 120, 88, $06, $00
+	db 120, 88, $06, SPRITE_NO_FLIP
 	db 120, 96, $06, SPRITE_XFLIP
 	db 128, 88, $06, SPRITE_YFLIP
 	db 128, 96, $06, SPRITE_XFLIP | SPRITE_YFLIP
 
 MorphSprite2OAM::
-	db 120, 88, $07, $00
+	db 120, 88, $07, SPRITE_NO_FLIP
 	db 120, 96, $07, SPRITE_XFLIP
 	db 128, 88, $07, SPRITE_YFLIP
 	db 128, 96, $07, SPRITE_XFLIP | SPRITE_YFLIP
@@ -2350,7 +2350,7 @@ HandleFakeDaisyJumpingAway:: ; 1055
 	ld hl, wEntityAnimIndex		; sprite 1 animation index?
 	ld [hl], $20				; jumping enemy
 	ld bc, $C218
-	ld hl, Data_216D			; jumping curve
+	ld hl, JumpingCurve			; jumping curve
 	push bc
 	call Call_490D				; animates smth?
 	pop hl
@@ -2474,16 +2474,16 @@ GameState_29:: ; 1116
 	ld hl, wMarioPosX		; mario X position
 	ld [hl], 56
 	inc l
-	ld [hl], $10		; Super Mario
+	ld [hl], $10			; Super Mario
 	ld hl, wEntityPosX
-	ld [hl], 120		; Daisy X position
+	ld [hl], 120			; Daisy X position
 	xor a
 	ldh [rIF], a
 	ldh [hScrollX], a
 	ld [wScrollY], a
 	ldh [$FFFB], a
 	ld hl, wOAMBuffer
-	ld b, 3 * 4			; 3 projectiles?
+	ld b, 3 * 4				; 3 projectiles?
 .loop
 	ld [hli], a
 	dec b
@@ -2495,7 +2495,7 @@ GameState_29:: ; 1116
 	ldh [hTextCursorLo], a
 	ld a, MUSIC_OH_DAISY
 	ld [wPlaySong], a
-	ld a, %11000011
+	ld a, LCDCF_ON | LCDCF_WIN9C00 | LCDCF_OBJON | LCDCF_BGON
 	ldh [rLCDC], a
 	ei
 	ld hl, hGameState
@@ -3103,7 +3103,7 @@ HandleTheEnd::
 	ldh [hActiveRomBank], a
 	ld [MBC1RomBank], a
 	ld [$C0DC], a
-	ld [$C0A4], a
+	ld [wIsGameOver], a
 	xor a
 	ld [wGameTimer], a
 	ld [wGameOverWindowEnabled], a
@@ -3182,7 +3182,7 @@ HandleUndergroundWarping:: ; 162F
 	ldh [rIF], a
 	ldh [hGameState], a
 	ldh [hScrollX], a
-	ld a, %11000011			; todo
+	ld a, LCDCF_ON | LCDCF_WIN9C00 | LCDCF_OBJON | LCDCF_BGON
 	ld [rLCDC], a
 	ei
 	ret
@@ -3226,9 +3226,9 @@ HandleGoingRightIntoPipe:: ; 166C
 	ld hl, $FFF4
 	ld [hli], a
 	ld [hli], a
-	ldh a, [$FFF7]		; FFF6 and FFF7 contain the coords where Mario will
+	ldh a, [hPipeExitPosY]		; FFF6 and FFF7 contain the coords where Mario will
 	ld d, a				; come out of the pipe
-	ldh a, [$FFF6]
+	ldh a, [hPipeExitPosX]
 	ld e, a
 	push de
 	call DrawInitialScreen		; draw the level
@@ -3259,7 +3259,7 @@ HandleGoingRightIntoPipe:: ; 166C
 	ldh [$FFE9], a		; first col not yet loaded in. IMO $807 should do this
 	call InitEnemySlots
 	call ClearSprites		; clears objects
-	ld a, $C3
+	ld a, LCDCF_ON | LCDCF_WIN9C00 | LCDCF_OBJON | LCDCF_BGON
 	ldh [rLCDC], a
 	ld a, STATE_12
 	ldh [hGameState], a
@@ -3341,12 +3341,12 @@ MarioStandingOnBossSwitch:: ; 175B
 	ldh a, [hGameState]
 	cp a, STATE_LOAD_MENU
 	jp nc, Call_17BC.jmp_181E
-	jp Jmp_1B45				; Mario wins
+	jp MarioWins				; Mario wins
 
 ; Called every frame when standing on a pipe?
 MarioStandingOnPipe:: ; 1765
 	ldh a, [hJoyHeld]
-	bit D_DOWN_BIT, a
+	bit PADB_DOWN, a
 	jp z, Jmp_185D			; Down button
 	ld bc, -$20				; one screen width?
 	ld a, h
@@ -3925,7 +3925,7 @@ Call_1AAD:: ; 1AAD
 	cp a, $77
 	jr z, .touchedSidewaysPipe
 	cp a, $F2				; downward fist Genkotsu
-	jr z, Jmp_1B45			; ...makes Mario win? Bug? Deleted content?
+	jr z, MarioWins			; ...makes Mario win? Bug? Deleted content?
 .stopMario
 	ld hl, wMarioAnimFrameCounter			; animation frame counter
 	inc [hl]
@@ -3981,7 +3981,7 @@ Call_1AAD:: ; 1AAD
 	ret
 
 ; makes Mario win?
-Jmp_1B45:: ; 1B45
+MarioWins:: ; 1B45
 	ldh a, [hSuperStatus]
 	cp a, 2						; fully grown Super Mario
 	ld b, $FF
@@ -4001,7 +4001,7 @@ Jmp_1B45:: ; 1B45
 	and a, $F0
 	ld [wMarioAnimIndex], a
 .jmp_1B66
-	ld a, STATE_7					; end of level with music?
+	ld a, STATE_LEVEL_END_FX	; end of level with music?
 	ldh [hGameState], a
 	ld a, [$D007]
 	and a
@@ -4172,7 +4172,7 @@ UpdateLives::
 .gameOver
 	ld a, STATE_PRE_GAMEOVER	; Game over
 	ldh [hGameState], a
-	ld [$C0A4], a
+	ld [wIsGameOver], a
 	jr .out
 
 .loseLife
@@ -4306,12 +4306,12 @@ MoveMario::
 .jmp_1D49
 	ld de, wJumpStatus		; jump status. 00 on ground, 01 ascending, 02 descending
 	ldh a, [hJoyHeld]
-	bit D_DOWN_BIT, a			; down button
+	bit PADB_DOWN, a			; down button
 	jr nz, .downButton
 .checkDirectionalKeys
-	bit D_RIGHT_BIT, a			; right button
+	bit PADB_RIGHT, a			; right button
 	jr nz, .rightButton
-	bit D_LEFT_BIT, a			; left button
+	bit PADB_LEFT, a			; left button
 	jp nz, .leftButton
 	ld hl, wMarioMomentum		; speed?
 	ld a, [hl]
@@ -4353,7 +4353,7 @@ MoveMario::
 	ld a, $18
 	ld [wMarioAnimIndex], a		; crouching mario, hidden daisy
 	ldh a, [hJoyHeld]
-	and a, D_LEFT | D_RIGHT	; test bits left and right button
+	and a, PADF_LEFT | PADF_RIGHT	; test bits left and right button
 	jr nz, .jmp_1DA6
 	ld a, [wMarioMomentum]		; momentum?
 	and a
@@ -4452,7 +4452,7 @@ MoveMario::
 	ld a, [hl]
 	cp a, $A0
 	jr c, .jmp_1E1C
-	jp Jmp_1B45			; huh?
+	jp MarioWins			; huh?
 
 .leftButton
 	ld hl, wMarioWalkingDir		; walking dir
@@ -4486,7 +4486,7 @@ MoveMario::
 	jr c, .jmp_1E9F		; jump if X < 0x0F
 	push hl
 	ldh a, [hJoyHeld]
-	bit D_LEFT_BIT, a		; left button
+	bit PADB_LEFT, a		; left button
 	jr z, .jmp_1E97
 	ld a, [wMarioAnimIndex]
 	cp a, $18			; crouching
@@ -4979,7 +4979,7 @@ InitialStateData::
 	db $01, 0, 0, $0F, $00, SPRITE_XFLIP, $00, $00, $00
 	ds 7
 
-Data_216D::	 ; jumping "parabola"?
+JumpingCurve::	 ; jumping "parabola"?
 	db $04, $04, $03, $03, $02, $02, $02, $02, $02, $02, $02, $02, $02, $01, $01, $01, $01, $01, $01, $01, $00, $01, $00, $01, $00, $00, $7F
 
 Jump_2188:: ; 2188
@@ -5272,10 +5272,10 @@ Call_22FD::
 	ldh a, [$FFF5]
 	add hl, de
 	ld [hl], a
-	ldh a, [$FFF6]
+	ldh a, [hPipeExitPosX]
 	add hl, de
 	ld [hl], a
-	ldh a, [$FFF7]
+	ldh a, [hPipeExitPosY]
 	add hl, de
 	ld [hl], a
 	xor a
@@ -5346,7 +5346,6 @@ StoreBlockInOverlay:: ; 2363
 	pop hl
 	ret
 
-; too many calls to far banks
 HandleAutoScrollLevel::
     ldh a, [$B2]
     and a
@@ -5356,7 +5355,7 @@ HandleAutoScrollLevel::
     call Call_001_4FB2
     ld a, [$D007]
     and a
-    call nz, Jmp_1B45
+    call nz, MarioWins
     call EntityCollision
     call Call_01_4FEC
     call Call_01_5118
@@ -5367,16 +5366,16 @@ HandleAutoScrollLevel::
     ld [MBC1RomBank], a
     call $498B
     ld bc, $C218
-    ld hl, Data_216D
+    ld hl, JumpingCurve
     call Call_490D
     ld bc, $C228
-    ld hl, Data_216D
+    ld hl, JumpingCurve
     call Call_490D
     ld bc, $C238
-    ld hl, Data_216D
+    ld hl, JumpingCurve
     call Call_490D
     ld bc, $C248
-    ld hl, Data_216D
+    ld hl, JumpingCurve
     call Call_490D
     call $4AEA
     call $4B8A
@@ -7380,7 +7379,7 @@ Call_3D1A; 3D1A
 	ret
 
 DisplayTimer:: ; 3D6A ; TODO better name?
-	ld a, [$C0A4]		; stores game over?
+	ld a, [wIsGameOver]		; stores game over?
 	and a
 	ret nz
 	ldh a, [hGameState]
@@ -7412,7 +7411,7 @@ DisplayTimer:: ; 3D6A ; TODO better name?
 ; entering bonus game. Clear the background, and print amount of lives
 HandleGotoBonusGame:: ; 3D97
 	ld hl, wPlaySong
-	ld a, 9
+	ld a, MUSIC_BONUS_GAME
 	ld [hl], a
 	xor a
 	ldh [rLCDC], a
@@ -7444,7 +7443,7 @@ HandleGotoBonusGame:: ; 3D97
 	and a, $F0
 	swap a
 	ld [de], a		; Print lives at the appropriate position
-	ld a, %10000011	
+	ld a, LCDCF_ON | LCDCF_OBJON | LCDCF_BGON	
 	ld [rLCDC], a	; Turn on LCD, background, objects
 	ld a, STATE_ENTER_BONUS_GAME
 	ldh [hGameState], a
@@ -7581,7 +7580,7 @@ HandleEnterBonusGame:: ; 3DD7
 	ld a, l
 	cp a, $52
 	jr nz, .displayPrize
-	ld a, %10000011			; TODO make this a constant
+	ld a, LCDCF_ON | LCDCF_OBJON | LCDCF_BGON
 	ldh [rLCDC], a
 	ld a, STATE_BONUS_GAME_SETUP_MARIO
 	ldh [hGameState], a

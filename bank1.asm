@@ -220,7 +220,7 @@ Call_001_5089:
     ldh [$AE], a                                  ; $50A5: $E0 $AE
     call LookupTile                               ; $50A7: $CD $53 $01
     cp $E1                                        ; $50AA: $FE $E1
-    jp z, Jmp_1B45                                ; $50AC: $CA $45 $1B
+    jp z, MarioWins                                ; $50AC: $CA $45 $1B
 
     cp $60                                        ; $50AF: $FE $60
     jr nc, jr_001_50B4                            ; $50B1: $30 $01
@@ -280,10 +280,10 @@ jr_001_50D8:
     jr z, jr_001_5107                             ; $50F3: $28 $12
 
     cp $E1                                        ; $50F5: $FE $E1
-    jp z, Jmp_1B45                                ; $50F7: $CA $45 $1B
+    jp z, MarioWins                                ; $50F7: $CA $45 $1B
 
     cp $83                                        ; $50FA: $FE $83
-    jp z, Jmp_1B45                                ; $50FC: $CA $45 $1B
+    jp z, MarioWins                                ; $50FC: $CA $45 $1B
 
     pop hl                                        ; $50FF: $E1
     ret                                           ; $5100: $C9

@@ -1,7 +1,7 @@
 INCLUDE "charmap.asm"
 INCLUDE "sound_constants.asm"
 INCLUDE "constants.asm"
-INCLUDE "gbhw.asm"
+INCLUDE "hardware.inc"
 INCLUDE "hram.asm"
 INCLUDE "vram.asm"
 
@@ -260,7 +260,7 @@ UpdateFloaties:: ; 5892
 	ldh a, [hFloatyY]
 	ld [hli], a
 	ldh a, [hFloatyX]
-	add a, $8		; one tile to the right
+	add a, 8		; one tile to the right
 	ld [hli], a
 	ld a, e			; right object
 	ld [hl], a
@@ -519,7 +519,7 @@ _HandleBonusGame:: ; 5ABB
 	bit 0, a
 	jr z, .jmp_5AC9
 	ldh a, [hJoyHeld]
-	bit A_BUTTON_BIT, a		; A button todo
+	bit PADB_A, a		; A button todo
 	jp nz, .jmp_5B56
 .jmp_5AC9
 	ld hl, wBonusGameFrameCounter
@@ -539,7 +539,7 @@ _HandleBonusGame:: ; 5ABB
 	cp a, $80		; bottom floor
 	jr z, .jmp_5AF1
 .loop1
-	ld a, $18
+	ld a, 8 * 3
 	add [hl]		; down 3 tiles
 	ld [hli], a
 	inc l
@@ -583,7 +583,7 @@ _HandleBonusGame:: ; 5ABB
 	add hl, bc
 	cp a, $07
 	jr c, .jmp_5B27
-	ld hl, $98EA
+	ld hl, vBGMap0 + $EA ; $98EA
 	xor a
 	inc a
 	ld [de], a
@@ -636,7 +636,7 @@ _HandleBonusGameWalking:: ; 5B65
 	jr nz, .jmp_5B73
 	inc [hl]				; start walking
 	ld hl, wPlaySong
-	ld a, $0A				; walking music
+	ld a, MUSIC_BONUS_GAME_WALK				; walking music
 	ld [hl], a
 .jmp_5B73
 	ld hl, wOAMBuffer + 4 * $C + 1	; X pos
@@ -919,7 +919,7 @@ _HandleBonusGameGettingPrice:: ; 5CDE
 	ld [$DA17], a
 .playWinSound
 	ld hl, wPlaySong
-	ld a, $0D
+	ld a, MUSIC_BONUS_GAME_WIN
 	ld [hl], a				; Win sound
 	ret
 

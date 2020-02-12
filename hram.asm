@@ -46,6 +46,10 @@ hColumnPointerLo EQU $FFE8
 hFloatyX EQU $FFEB
 hFloatyY EQU $FFEC
 hFloatyControl EQU $FFED
+
+hPipeExitPosX EQU $FFF6
+hPipeExitPosY EQU $FFF7
+
 hIsUnderground EQU $FFF9
 hCoins EQU $FFFA
 hActiveRomBank EQU $FFFD

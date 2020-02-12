@@ -52,7 +52,7 @@ Call_4823:: ; 4823
 	ld h, a
 	ldh a, [$FF97]
 	ld l, a
-	ld de, $0010
+	ld de, $10
 	add hl, de
 	ldh a, [$FF8F]
 	dec a
@@ -313,7 +313,8 @@ INCBIN "baserom.gb", $C966, $4E74 - $4966
 SECTION "bank 3 levels", ROMX[$503F], BANK[3]
 INCBIN "baserom.gb", $D03F, $6600 - $503F
 
-Data_6600
+
+StartSquareSoundTable::
 	dw StartJumpSFX
 	dw StartSuperballSFX
 	dw StartStompSFX
@@ -326,7 +327,7 @@ Data_6600
 	dw StartTimerTickSFX
 	dw StartFlowerSFX
 
-Data_6616
+ContinueSquareSoundTable::
 	dw ContinueJumpSFX
 	dw ContinueSquareSFX
 	dw ContinueStompSFX
@@ -339,19 +340,21 @@ Data_6616
 	dw ContinueSquareSFX
 	dw ContinueSweepSquareSFX
 
-Data_662C
+; noise
+StartNoiseSoundTable::
 	dw StartExplosionSFX
 	dw StartBrickShatterSFX
 	dw StartDeathCrySFX
 	dw StartFireBreathSFX
-Data_6634
+
+ContinueNoiseSoundTable::
 	dw ContinueNoiseSFX
 	dw ContinueNoiseSFX
 	dw ContinueDeathCrySFX
 	dw ContinueNoiseSFX
 
 ; dump_music.py
-Data_663C
+SongTable::
 	dw Song_6F98	; 1
 	dw Song_6FA3
 	dw Song_6FAE
@@ -600,7 +603,7 @@ StartJumpSFX:: ; 67AF
 ContinueJumpSFX:: ; 67C4
 	call UpdateSoundProgress
 	and a
-	jp z, ContinueSquareSFX.stop
+	jp z, StopSquareSFX
 	ld hl, $DFE4
 	ld e, [hl]
 	inc l
@@ -628,11 +631,12 @@ StartSuperballSFX:: ; 67E4
 	ld hl, SuperballChannelData
 	jp Jmp_69C6
 
-ContinueSquareSFX
+ContinueSquareSFX::
 	call UpdateSoundProgress
 	and a
 	ret nz
-.stop
+
+StopSquareSFX::
 	xor a
 	ld [wCurrentSquareSFX], a
 	ldh [rNR10], a
@@ -662,7 +666,7 @@ ContinueCoinSFX:: ; 681D
 	cp a, 4
 	jr z, .secondTone
 	cp a, $18
-	jp z, ContinueSquareSFX.stop
+	jp z, StopSquareSFX
 	ret
 
 .secondTone
@@ -692,7 +696,7 @@ ContinueStompSFX:: ; 6849
 	cp a, 0
 	jr z, .jmp_685D
 	cp a, 1
-	jp z, ContinueSquareSFX.stop
+	jp z, StopSquareSFX
 	ret
 
 .jmp_685D
@@ -728,7 +732,7 @@ ContinueSweepSquareSFX::
 	add [hl]
 	ld [hl], a
 	cp a, $E0
-	jp z, ContinueSquareSFX.stop
+	jp z, StopSquareSFX
 	ld c, LOW(rNR13)
 	ld [$FF00+c], a
 	inc c
@@ -772,7 +776,7 @@ ContinueInjurySFX::
 	add hl, bc
 	ld a, [hl]
 	and a
-	jp z, ContinueSquareSFX.stop
+	jp z, StopSquareSFX
 	ld c, LOW(rNR12)
 	ld [$FF00+c], a
 	inc c
@@ -789,14 +793,19 @@ StartOneUpSFX::
 ; Pentatonic riff. CDEGC'A in C major
 OneUpNote1::
 	db $00, $30, $F0, $A7, $C7 ; 1472 Hz ~ F#6
+
 OneUpNote2::
 	db $00, $30, $F0, $B1, $C7 ; 1659 Hz ~ G#6
+
 OneUpNote3::
 	db $00, $30, $F0, $BA, $C7 ; 1872 Hz ~ A#6
+
 OneUpNote4::
 	db $00, $30, $F0, $C4, $C7 ; 2184 Hz ~ C#7 (25 cents flat, bug, 7C5 is closer)
+
 OneUpNote5::
 	db $00, $30, $F0, $D4, $C7 ; 2978 Hz ~ F#7 (11 cents sharp)
+
 OneUpNote6::
 	db $00, $30, $F0, $CB, $C7 ; 2473 Hz ~ D#7 (11 cents flat)
 
@@ -817,7 +826,7 @@ ContinueOneUpSFX:: ; 6916
 	jr z, .playNote5
 	cp a, $05
 	jr z, .playNote6
-	jp ContinueSquareSFX.stop
+	jp StopSquareSFX
 
 .playNote2
 	ld hl, OneUpNote2
@@ -882,7 +891,7 @@ ContinueDeathCrySFX:: ; 697C
 	add hl, bc
 	ld a, [hl]
 	and a
-	jr z, ContinueNoiseSFX.stop
+	jr z, StopNoiseSFX
 	ldh [rNR43], a		; noise characteristics
 	ret
 
@@ -908,7 +917,8 @@ ContinueNoiseSFX:: ; 69AF
 	call UpdateSoundProgress
 	and a
 	ret nz
-.stop
+
+StopNoiseSFX::
 	xor a
 	ld [wCurrentNoiseSFX], a
 	ld a, $08
@@ -1066,7 +1076,7 @@ PlaySquareSFX:: ; 6A6A
 	jr nc, .continue		; bounds check, 11 sound effects in this "channel"
 	ld hl, $DF1F			; lock square channel 1
 	set 7, [hl]
-	ld hl, Data_6600
+	ld hl, StartSquareSoundTable
 	call LookupSoundPointer	; also sets FFD1
 	jp hl
 
@@ -1075,7 +1085,7 @@ PlaySquareSFX:: ; 6A6A
 	ld a, [de]
 	and a
 	jr z, .out
-	ld hl, Data_6616
+	ld hl, ContinueSquareSoundTable
 	call LookupSoundPointer.lookup
 	jp hl
 
@@ -1091,7 +1101,7 @@ PlayNoiseSFX:: ; 6A8E
 	jr nc, .continue
 	ld hl, $DF4F
 	set 7, [hl]			; lock noise channel
-	ld hl, Data_662C
+	ld hl, StartNoiseSoundTable
 	call LookupSoundPointer
 	jp hl
 
@@ -1100,7 +1110,7 @@ PlayNoiseSFX:: ; 6A8E
 	ld a, [de]
 	and a
 	jr z, .out
-	ld hl, Data_6634
+	ld hl, ContinueNoiseSoundTable
 	call LookupSoundPointer.lookup
 	jp hl
 
@@ -1121,7 +1131,7 @@ StartMusic:: ; 6AB5
 	cp a, $FF			; Can never be true. Possibly -1 was used as a sentinel
 	jr z, _Unreachable	; to stop all sound, like in Pokemon
 	ld b, a
-	ld hl, Data_663C
+	ld hl, SongTable
 	ld a, b
 	and a, $1F			; Huh?
 	call LookupSoundPointer.lookup
@@ -1247,7 +1257,7 @@ CopyPointer:: ; 6B86
 	ret
 
 ; setup array of addresses and such at DF00-DF4F
-; HL contains the pointer from Data_663C
+; HL contains the pointer from SongTable
 Call_6B8C::; 6B8C
 	call MuteSound
 	xor a
@@ -1377,26 +1387,26 @@ Jmp_6C4C
 
 .jmp_6C4F
 	ldh a, [hCurrentChannel]
-	cp a, $03			; wave
+	cp a, 3			; wave
 	jr nz, .jmp_6C65
 	ld a, [$DF38]
 	bit 7, a
 	jr z, .jmp_6C65
 	ld a, [hl]			; DF32?
-	cp a, $06
+	cp a, 6
 	jr nz, .jmp_6C65
 	ld a, $40
 	ldh [rNR32], a		; wave channel volume
 .jmp_6C65
 	push hl
 	ld a, l
-	add a, $09
+	add a, 9
 	ld l, a
 	ld a, [hl]			; DFxB
 	and a
 	jr nz, Jmp_6C4C
 	ld a, l
-	add a, $04
+	add a, 4
 	ld l, a
 	bit 7, [hl]			; DFxF lock status
 	jr nz, Jmp_6C4C		; jump if locked
@@ -1415,7 +1425,7 @@ Jmp_6C4C
 	call IncrementPointerTwice
 .jmp_6C86
 	ld a, l
-	add a, $04
+	add a, 4
 	ld e, a
 	ld d, h
 	call CopyPointerIndirect
@@ -1505,16 +1515,16 @@ PlayMusic:: ; 6CBE
 	jp z, .jmp_6D34
 	push hl
 	ld a, l
-	add a, $05
+	add a, 5
 	ld l, a
 	ld e, l
 	ld d, h						; DFx9
 	inc l
 	inc l
 	ld a, c
-	cp a, $01
+	cp a, 1
 	jr z, .jmp_6D2F
-	ld [hl], 00					; DFxB
+	ld [hl], 0					; DFxB
 	ld hl, NotePitches
 	add hl, bc
 	ld a, [hli]
