@@ -1,4 +1,4 @@
-INCLUDE "gbhw.asm"
+INCLUDE "hardware.inc"
 INCLUDE "sound_constants.asm"
 INCLUDE "hram.asm"
 
@@ -640,9 +640,9 @@ StopSquareSFX::
 	xor a
 	ld [wCurrentSquareSFX], a
 	ldh [rNR10], a
-	ld a, $08
+	ld a, AUDENV_UP
 	ldh [rNR12], a
-	ld a, $80
+	ld a, AUDHIGH_RESTART
 	ldh [rNR14], a
 	ld hl, $DF1F
 	res 7, [hl]				; unlock
@@ -1058,7 +1058,7 @@ MuteSound::
 	ldh [rNR12], a
 	ldh [rNR22], a
 	ldh [rNR42], a	; volume to zero, enable envelope?
-	ld a, $80
+	ld a, AUDHIGH_RESTART
 	ldh [rNR14], a
 	ldh [rNR24], a
 	ldh [rNR44], a	; restart sound, counter mode

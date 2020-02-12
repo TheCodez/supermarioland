@@ -53,7 +53,7 @@ Init::	; 0185
 	di
 	ldh [rIF], a
 	ldh [rIE], a
-	ld a, $40
+	ld a, STATF_LYC
 	ldh [rSTAT], a
 	xor a
 	ldh [rSCY], a
@@ -68,10 +68,10 @@ Init::	; 0185
 	
 	ld a, LCDCF_OBJON | LCDCF_BGON
 	ldh [rLCDC], a	; Turn LCD off
-	ld a, $E4
+	ld a, %11100100
 	ldh [rBGP], a
 	ldh [rOBP0], a
-	ld a, $54
+	ld a, %01010100
 	ldh [rOBP1], a
 	ld hl, rNR52
 	ld a, $80
@@ -518,7 +518,7 @@ HandleStartMenu::
 .entryPoint::
 	ldh a, [hJoyPressed]
 	ld b, a
-	bit PADB_START, b		; PADF_START button
+	bit PADB_START, b		; START button
 	jr nz, .startPressed
 	bit PADB_SELECT, b		; SELECT button
 	jr nz, .selectPressed
@@ -965,7 +965,7 @@ pauseOrReset:: ; 7DA
 	and a, PADF_A | PADF_B | PADF_START | PADF_SELECT
 	cp a, PADF_A | PADF_B | PADF_START | PADF_SELECT
 	jr nz, .noReset
-	jp Init				; if at any point A+B+Start+Select are pressed, reset
+	jp Init				; if at any point A + B + Start + Select are pressed, reset
 
 .noReset
 	ldh a, [hJoyPressed]

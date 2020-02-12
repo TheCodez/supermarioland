@@ -1,20 +1,20 @@
 ReadJoypad:: ; 47F2
 	ld a, $20		; select button keys
-	ldh [rJOYP], a
-	ldh a, [rJOYP]
-	ldh a, [rJOYP]	; read multiple times to avoid switch bounce
+	ldh [rP1], a
+	ldh a, [rP1]
+	ldh a, [rP1]	; read multiple times to avoid switch bounce
 	cpl				; 0 means pressed
 	and a, $0F
 	swap a
 	ld b, a
 	ld a, $10		; select direction keys
-	ldh [rJOYP], a
-	ldh a, [rJOYP]
-	ldh a, [rJOYP]
-	ldh a, [rJOYP]
-	ldh a, [rJOYP]
-	ldh a, [rJOYP]
-	ldh a, [rJOYP]
+	ldh [rP1], a
+	ldh a, [rP1]
+	ldh a, [rP1]
+	ldh a, [rP1]
+	ldh a, [rP1]
+	ldh a, [rP1]
+	ldh a, [rP1]
 	cpl
 	and a, $0F
 	or b
@@ -26,5 +26,5 @@ ReadJoypad:: ; 47F2
 	ld a, c
 	ldh [hJoyHeld], a
 	ld a, $30
-	ldh [rJOYP], a	; deselect keys
+	ldh [rP1], a	; deselect keys
 	ret
