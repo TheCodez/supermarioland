@@ -387,7 +387,7 @@ jr_001_5168:
     inc a                                         ; $516D: $3C
     ldh [$B3], a                                  ; $516E: $E0 $B3
     inc a                                         ; $5170: $3C
-    ld [wActiveMusic], a                                 ; $5171: $EA $E8 $DF
+    ld [wPlaySong], a                                 ; $5171: $EA $E8 $DF
     ld a, $90                                     ; $5174: $3E $90
     ldh [$A6], a                                  ; $5176: $E0 $A6
     ret  

@@ -8,78 +8,7 @@ INCLUDE "hram.asm"
 INCLUDE "macros.asm"
 INCLUDE "enemies.asm"
 
-SECTION "bank0", ROM0[$0000]
-
-; Unused
-SECTION "RST 0", ROM0[$0000]
-	jp Init
-
-; Unused
-SECTION "RST 8", ROM0[$0008]
-	jp Init
-
-SECTION "RST 28", ROM0[$0028]
-; Immediately following the return address is a jump table
-; A is used as index
-TableJump::
-	add a		; Multiply A by 2, as addresses are 16 bit
-	pop hl
-	ld e, a
-	ld d, $00
-	add hl, de	; Add the offset to the base address
-	ld e, [hl]	; Load the address at that offset into DE
-	inc hl
-	ld d, [hl]
-	push de		; Jump to the target address
-	pop hl
-	jp hl
-
-; Interrupts
-SECTION "Interrupt VBlank", ROM0[$0040]
-	jp VBlank
-
-SECTION "Interrupt LCD STAT", ROM0[$0048]
-	jp LCDStatus
-
-SECTION "Interrupt Timer", ROM0[$0050]
-; Switch to bank 3 (XXX contains music code?)
-; Overlaps into serial interrupt mid opcode, but it's unused anyway
-	push af
-	ld a, BANK(Call_7FF0)
-	ld [MBC1RomBank], a
-	call Call_7FF0 ; TODO
-	ldh a, [hActiveRomBank]
-	ld [MBC1RomBank], a
-	pop af
-	reti
-
-INCLUDE "vblank.asm"
-
-INCLUDE "lcd_stat.asm"
-
-SECTION "Entry point", ROM0[$0100]
-	nop
-	jp Start
-
-; Missing values will be filled in by rgbfix
-SECTION "Header", ROM0[$104]
-	ds $30		; Nintendo Logo
-				; SUPER MARIOLAND in ASCII
-	db $53, $55, $50, $45, $52, $20, $4D, $41, $52, $49, $4F, $4C, $41, $4E, $44
-	db 00		; DMG - classic Game Boy
-	db 00, 00	; No new licensee code
-	db 00		; No SGB functions
-	db 01		; MBC1 
-	db 01		; 64kB, 4 banks
-	db 00		; No RAM
-	db 00		; Japanese
-	db 01		; Old licensee code: Nintendo
-	db 01		; First revision
-	ds 1		; Header Checksum
-	ds 2		; Global Checksum
-
-Start::	; 0150
-	jp Init
+INCLUDE "header.asm"
 
 ; X and Y coordinates in FFAD and FFAE
 LookupTile:: ; 153
@@ -674,16 +603,16 @@ HandleStartMenu::
 	ldh [$FF9F], a
 	ld [$C0A4], a
 	dec a
-	ld [wActiveMusic], a
+	ld [wPlaySong], a
 	ld a, BANK(InitSound)
 	ld [MBC1RomBank], a
 	call InitSound
 	ldh a, [hActiveRomBank]
 	ld [MBC1RomBank], a
 	xor a
-	ld [wSquareSFX], a
+	ld [wPlaySquareSFX], a
 	ld [$DFF0], a
-	ld [wNoiseSFX], a
+	ld [wPlayNoiseSFX], a
 	ld a, 7			; enable timer interrupt TODO
 	ld [rIE], a
 	ret
@@ -1017,12 +946,12 @@ StartLevelMusic::
 	ld d, $00
 	add hl, de
 	ld a, [hl]
-	ld [wActiveMusic], a
+	ld [wPlaySong], a
 	ret
 
 .underground
 	ld a, MUSIC_UNDERGROUND	; underground music
-	ld [wActiveMusic], a
+	ld [wPlaySong], a
 	ret
 
 .musicByLevel
@@ -1228,7 +1157,7 @@ EntityCollision:: ; 84E
 	ld [hl], a
 .enemyKilled
 	ld a, SFX_STOMP
-	ld [wSquareSFX], a		; stomp sound
+	ld [wPlaySquareSFX], a		; stomp sound
 	ld a, [wMarioPosX]		; X pos
 	add a, -4
 	ldh [hFloatyX], a	; todo comment
@@ -1318,7 +1247,7 @@ EntityCollision:: ; 84E
 	ldh [hSuperballMario], a
 .playPowerUpSound
 	ld a, 4
-	ld [wSquareSFX], a
+	ld [wPlaySquareSFX], a
 .spawn1000ScoreFloaty
 	ld a, $10
 	ldh [hFloatyControl], a
@@ -1350,14 +1279,14 @@ EntityCollision:: ; 84E
 	ld a, $F8
 	ld [wInvincibilityTimer], a
 	ld a, MUSIC_STAR
-	ld [wActiveMusic], a				; Galop Infernal
+	ld [wPlaySong], a				; Galop Infernal
 	jr .spawn1000ScoreFloaty
 
 .pickup1UP
 	ld a, $FF
 	ldh [hFloatyControl], a		; 1UP floaty
 	ld a, SFX_1UP
-	ld [wSquareSFX], a				; life up
+	ld [wPlaySquareSFX], a				; life up
 	ld a, 1
 	ld [wLivesEarnedLost], a
 	jr .positionFloaty
@@ -1370,7 +1299,7 @@ InjureMario:: ; 9E0
 	ld a, $50
 	ldh [hTimer], a
 	ld a, 6
-	ld [wSquareSFX], a			; injury music
+	ld [wPlaySquareSFX], a			; injury music
 	ret
 
 KillMario:: ; 9F1
@@ -1383,7 +1312,7 @@ KillMario:: ; 9F1
 	ldh [hSuperballMario], a; superball capability
 	ldh [rTMA], a
 	ld a, MUSIC_DEATH
-	ld [wActiveMusic], a			; sound effect
+	ld [wPlaySong], a			; sound effect
 	ld a, SPRITE_HIDDEN             ; make mario invisible
 	ld [wMarioVisible], a
 	ld a, [wMarioPosY]			; Mario Y pos
@@ -1834,7 +1763,7 @@ HandleLevelEndCountdownTimer:: ; C73
 	and a, 1
 	ret nz
 	ld a, $0A
-	ld [wSquareSFX], a
+	ld [wPlaySquareSFX], a
 	ret
 
 .endLevel
@@ -1927,7 +1856,7 @@ HandlePrepareNextLevel:: ; D49
 	ld a, [hl]
 	and a
 	ret nz
-	ld a, [$DFF9]
+	ld a, [wCurrentNoiseSFX]
 	and a
 	ret nz
 	ldh a, [hLevelIndex]
@@ -2126,7 +2055,7 @@ HandleGateOpening:: ; E5D
 	ld a, $08
 	ldh [hTimer], a
 	ld a, $0B
-	ld [wSquareSFX], a		; sound effect
+	ld [wPlaySquareSFX], a		; sound effect
 	ret
 
 .gateIsOpen
@@ -2189,7 +2118,7 @@ HandleMarioWalksOffscreen:: ; ECD
 	ld a, $A1
 	ldh [hTimer], a
 	ld a, MUSIC_OH_DAISY
-	ld [wActiveMusic], a		; Daisy music
+	ld [wPlaySong], a		; Daisy music
 	ld hl, hGameState
 	inc [hl]			; 21 → 22
 	ret
@@ -2293,7 +2222,7 @@ HandleFakeDaisySpeaking:: ; F6A
 	ld a, 8
 	ldh [$FFFB], a	; timer for morph
 	ld a, MUSIC_FAKE_DAISY
-	ld [wActiveMusic], a	; music
+	ld [wPlaySong], a	; music
 	ret
 
 PrintVictoryMessage:: ; F8A
@@ -2376,7 +2305,7 @@ HandleFakeDaisyMorphing:: ; FFD
 	jr nz, .exchangeSprite
 	ld hl, MorphSprite2OAM
 	ld a, 3
-	ld [wNoiseSFX], a
+	ld [wPlayNoiseSFX], a
 .exchangeSprite
 	call .writeSprite
 	ld a, 8
@@ -2464,7 +2393,7 @@ HandleTatangaDying::	; 1099
 	and a
 	jr nz, .screenShake
 	ld a, SFX_EXPLOSION
-	ld [wNoiseSFX], a		; explosion sound effect
+	ld [wPlayNoiseSFX], a		; explosion sound effect
 	ld a, $20			; one explosion every 32 frames, about half a second
 	ldh [$FFA7], a
 .screenShake
@@ -2565,7 +2494,7 @@ GameState_29:: ; 1116
 	ld a, $A5
 	ldh [hTextCursorLo], a
 	ld a, MUSIC_OH_DAISY
-	ld [wActiveMusic], a
+	ld [wPlaySong], a
 	ld a, %11000011
 	ldh [rLCDC], a
 	ei
@@ -2812,11 +2741,11 @@ HandleAirplaneMovingForward:: ; 12F1
 	inc a
 	call z, .call_1318
 	ldh [hScrollX], a
-	ld a, [$DFE9]		; wait until the song is over?
+	ld a, [wCurrentSong]		; wait until the song is over?
 	and a
 	ret nz
 	ld a, MUSIC_VICTORY
-	ld [wActiveMusic], a
+	ld [wPlaySong], a
 	ret
 
 .animateSpaceship
@@ -3466,7 +3395,7 @@ MarioStandingOnPipe:: ; 1765
 	and a
 	jr nz, .skip			; Keep invincibility music going
 	ld a, MUSIC_UNDERGROUND
-	ld [wActiveMusic], a			; underground music
+	ld [wPlaySong], a			; underground music
 .skip
 	call ClearSprites			; clears some sprites
 	jp Jmp_185D
@@ -3566,7 +3495,7 @@ Call_17BC:: ; 17BC
 	inc l
 	ld [hl], e
 	ld a, SFX_COIN
-	ld [wSquareSFX], a			; coin sound
+	ld [wPlaySquareSFX], a			; coin sound
 	jr .jmp_1801
 
 Jmp_185D
@@ -3627,7 +3556,7 @@ Jmp_185D
 	and a
 	ret nz
 	ld a, SFX_COIN
-	ld [wSquareSFX], a			; coin sound effect
+	ld [wPlaySquareSFX], a			; coin sound effect
 	ld a, [wMarioPosY]			; Y pos
 	sub a, 16
 	ldh [hFloatyY], a
@@ -3647,7 +3576,7 @@ Jmp_185D
 	ld a, $80
 	ld [wOAMBuffer + 4 * $B + 2], a
 	ld a, SFX_BUMP
-	ld [wSquareSFX], a			; bump sound effect
+	ld [wPlaySquareSFX], a			; bump sound effect
 	push hl
 	pop de
 	ld hl, $FFEE
@@ -3704,11 +3633,11 @@ Jmp_185D
 	ret nz
 	ld a, $82
 	ld [$C02E], a
-	ld a, [wSquareSFX]
+	ld a, [wPlaySquareSFX]
 	and a
 	jr nz, .jmp_1937
 	ld a, $07
-	ld [wSquareSFX], a
+	ld [wPlaySquareSFX], a
 
 .jmp_1937
 	push hl
@@ -3755,7 +3684,7 @@ Jmp_185D
 	and a
 	jp nz, .jmp_189B
 	ld a, 5					; empty Mystery Block contain a single coin
-	ld [wSquareSFX], a
+	ld [wPlaySquareSFX], a
 	ld a, $81
 	ld [$C02E], a
 	ld a, [wMarioPosY]			; ypos
@@ -3806,7 +3735,7 @@ Jmp_185D
 	ld a, MARIO_DESCENDING
 	ld [wJumpStatus], a
 	ld a, SFX_BUMP
-	ld [wSquareSFX], a			; bump
+	ld [wPlaySquareSFX], a			; bump
 	ret
 
 .hitBreakableBlock
@@ -3873,7 +3802,7 @@ Jmp_185D
 	ldh a, [hScrollX]
 	ldh [$FFF3], a
 	ld a, SFX_BRICKSHATTER
-	ld [wNoiseSFX], a			; breaking block sound effect
+	ld [wPlayNoiseSFX], a			; breaking block sound effect
 	ld de, $0050
 	call AddScore
 	ld a, 2
@@ -3893,7 +3822,7 @@ Jmp_185D
 	inc l
 	ld [hl], e
 	ld a, SFX_COIN
-	ld [wSquareSFX], a
+	ld [wPlaySquareSFX], a
 	ret
 
 ; Clears A if it's a solid block that does not have side or top collision,
@@ -4027,7 +3956,7 @@ Call_1AAD:: ; 1AAD
 	inc l
 	ld [hl], e				; store block address in FFEF-FFF0
 	ld a, SFX_COIN
-	ld [wSquareSFX], a			; coin sound effect
+	ld [wPlaySquareSFX], a			; coin sound effect
 	xor a
 	ret
 
@@ -4078,7 +4007,7 @@ Jmp_1B45:: ; 1B45
 	and a
 	jr nz, .jmp_1B79
 	ld a, MUSIC_LEVEL_COMPLETE
-	ld [wActiveMusic], a		; start victory music
+	ld [wPlaySong], a		; start victory music
 	ld a, $F0
 	ldh [hTimer], a				; countdown
 .jmp_1B79
@@ -4142,7 +4071,7 @@ BlockCollision:: ; 1B86
 	ret nz
 	ld [hl], " "		; remove it
 	ld a, SFX_COIN
-	ld [wSquareSFX], a		; todo sound effect
+	ld [wPlaySquareSFX], a		; todo sound effect
 	ld a, h
 	ld [$FFB0], a
 	ld a, l
@@ -4219,7 +4148,7 @@ UpdateLives::
 	jr z, .out
 	push af
 	ld a, $08
-	ld [wSquareSFX], a
+	ld [wPlaySquareSFX], a
 	ldh [$FFD3], a
 	pop af
 	add a, 1			; Add one life
@@ -4267,7 +4196,7 @@ PrepareGameOver::	; 1C7C
 	dec b
 	jr nz, .loop
 	ld a, MUSIC_GAME_OVER
-	ld [wActiveMusic], a
+	ld [wPlaySong], a
 	ldh a, [hWorldAndLevel]			; level on which we were? BCD encoded
 	ld [wContinueWorldAndLevel], a
 	ld a, [wScore + 2]
@@ -4671,7 +4600,7 @@ Call_1F03:: ; 1F03
 	ld a, [wMarioVisible]
 	xor a, SPRITE_HIDDEN ; blink Mario 7.5 times per second
 	ld [wMarioVisible], a
-	ld a, [$DFE9]		; currently playing song
+	ld a, [wCurrentSong]		; currently playing song
 	and a
 	ret nz				; invincibility stops when the timer runs out,
 .endOfInvincibility		; or the song stops
@@ -4829,7 +4758,7 @@ FindNeighboringTile::	; gets called in autoscroll from 514F?
 	inc l
 	ld [hl], e
 	ld a, SFX_COIN
-	ld [wSquareSFX], a		; coin sound effect
+	ld [wPlaySquareSFX], a		; coin sound effect
 .checkForBreakableBlock
 	cp a, $82			; breakable block
 	call z, Call_200A.breakBlockInAutoscroll
@@ -4925,7 +4854,7 @@ Call_200A::
 	cp a, $FF
 	jr nz, .jmp_2083
 	ld a, SFX_STOMP
-	ld [wSquareSFX], a			; enemy dieing sound effect
+	ld [wPlaySquareSFX], a			; enemy dieing sound effect
 	ldh a, [$FF9E]
 	ldh [hFloatyControl], a
 .jmp_2083
@@ -5018,7 +4947,7 @@ Call_200A::
 	ld de, $0050
 	call AddScore
 	ld a, 2
-	ld [wNoiseSFX], a
+	ld [wPlayNoiseSFX], a
 .out
 	pop af
 	pop de
@@ -5681,7 +5610,7 @@ Jmp_250B:
 	cp a, $C0
 	jr c, .findEmptySlot
 	ld a, MUSIC_BOSS
-	ld [wActiveMusic], a		; boss music!
+	ld [wPlaySong], a		; boss music!
 .findEmptySlot
 	ld de, $0010
 	ld b, $00
@@ -5713,7 +5642,7 @@ Call_254D:: ; 254D
 	ld [$D193], a
 	call InitEnemy
 	ld a, $0B
-	ld [wSquareSFX], a
+	ld [wPlaySquareSFX], a
 	ret
 
 DrawEnemies::; 2568
@@ -6176,7 +6105,7 @@ Call_2648:: ; 2648
 	cp a, $F9			; F9 - Sound effect
 	jr nz, .checkFA
 	ld a, [wCommandArgument]
-	ld [wNoiseSFX], a		; sound effect
+	ld [wPlayNoiseSFX], a		; sound effect
 	pop hl
 	ret
 
@@ -6184,7 +6113,7 @@ Call_2648:: ; 2648
 	cp a, $FA			; FA - Sound effect
 	jr nz, .checkFB
 	ld a, [wCommandArgument]
-	ld [wSquareSFX], a		; sound effect
+	ld [wPlaySquareSFX], a		; sound effect
 	pop hl
 	ret
 
@@ -6222,7 +6151,7 @@ Call_2648:: ; 2648
 	cp a, $FD			; FD - Music
 	jr nz, .unknownCommand
 	ld a, [wCommandArgument]
-	ld [wActiveMusic], a
+	ld [wPlaySong], a
 	pop hl
 	ret
 
@@ -6622,7 +6551,7 @@ Call_2AAD:: ; 2AAD
 
 .explosionSFX
 	ld a, 1
-	ld [wNoiseSFX], a	; explosion
+	ld [wPlayNoiseSFX], a	; explosion
 	jr .jmp_2AD6
 
 .bossHitSFX
@@ -6728,7 +6657,7 @@ ExplodeAllEnemies:: ; 2B2A
 	ldh [$FFC4], a
 	ldh [$FFC7], a
 	inc a
-	ld [wNoiseSFX], a	; explosion sound
+	ld [wPlayNoiseSFX], a	; explosion sound
 	ret
 
 ; enemy collision side check
@@ -7482,7 +7411,7 @@ DisplayTimer:: ; 3D6A ; TODO better name?
 
 ; entering bonus game. Clear the background, and print amount of lives
 HandleGotoBonusGame:: ; 3D97
-	ld hl, wActiveMusic
+	ld hl, wPlaySong
 	ld a, 9
 	ld [hl], a
 	xor a

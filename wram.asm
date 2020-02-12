@@ -219,15 +219,32 @@ wLadderTiles:: ; DA23
 
 ds $DFE0 - $DA27
 
-wSquareSFX:: ; DFE0
+wPlaySquareSFX:: ; DFE0
 	ds 1
 
-ds 7
-
-wActiveMusic:: ; DFE8
+wCurrentSquareSFX:: ; DFE1
 	ds 1
 
-ds $DFF8 - $DFE9
+ds 6
 
-wNoiseSFX:: ; DFF8
+wPlaySong:: ; DFE8
+	ds 1
+
+wCurrentSong:: ; DFE9
+	ds 1
+
+ds $DFF0 - $DFEA
+
+wPlayWaveSFX:: ; DFF0
+	ds 1
+
+wCurrentWaveSFX:: ; DFF1
+	ds 1
+
+ds $DFF8 - $DFF2
+
+wPlayNoiseSFX:: ; DFF8
+	ds 1
+
+wCurrentNoiseSFX:: ; DFF9
 	ds 1

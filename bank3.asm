@@ -395,7 +395,7 @@ _Call_7FF0:: ; 6662
 	xor a
 	ld [$FF00+c], a
 	ld a, SFX_1UP		; 1UP sound
-	ld [wSquareSFX], a
+	ld [wPlaySquareSFX], a
 .jmp_6688
 	call PlaySquareSFX
 	call PlayNoiseSFX	; play noise sfx
@@ -405,10 +405,10 @@ _Call_7FF0:: ; 6662
 	call PanStereo
 .out
 	xor a
-	ld [wSquareSFX], a
-	ld [wActiveMusic], a
+	ld [wPlaySquareSFX], a
+	ld [wPlaySong], a
 	ld [$DFF0], a
-	ld [wNoiseSFX], a
+	ld [wPlayNoiseSFX], a
 	ldh [hPauseUnpauseMusic], a
 	ld a, 7
 	ld [$00FF], a	; Bug continued
@@ -419,11 +419,11 @@ _Call_7FF0:: ; 6662
 	reti			; Interrupts are already enabled, necessary? Maybe to alert
 					; peripherals to reset their interrupt flags
 .pauseMusic
-	call _InitSound.muteChannels
+	call MuteSound
 	xor a
-	ld [$DFE1], a
-	ld [$DFF1], a
-	ld [$DFF9], a
+	ld [wCurrentSquareSFX], a
+	ld [wCurrentWaveSFX], a
+	ld [wCurrentNoiseSFX], a
 	ld a, $30
 	ldh [hPauseTuneTimer], a
 
@@ -467,7 +467,7 @@ PlayWaveSFX:: ; 66F6
 	ld a, [$DFF0]	; SFX channel, only has boss cry
 	cp a, $01
 	jr z, .startBossCry
-	ld a, [$DFF1]
+	ld a, [wCurrentWaveSFX]
 	cp a, $01
 	jr z, .continueBossCry
 	ret
@@ -476,7 +476,7 @@ PlayWaveSFX:: ; 66F6
 	db $80, $3A, $20, $B0, $C6	; 198/256 seconds, full volume, ~195 Hz (~G3)
 
 .startBossCry
-	ld [$DFF1], a
+	ld [wCurrentWaveSFX], a
 	ld hl, $DF3F
 	set 7, [hl]			; stops the music from using the Wave channel?
 	xor a
@@ -523,7 +523,7 @@ PlayWaveSFX:: ; 66F6
 
 .stopBossCry
 	xor a
-	ld [$DFF1], a
+	ld [wCurrentWaveSFX], a
 	ldh [rNR30], a
 	ld hl, $DF3F
 	res 7, [hl]			; release wave channel?
@@ -563,15 +563,15 @@ SuperballChannelData:: ; 678C
 
 ; used to check if new SFX overrides the one currently playing
 Call_6791:: ; 6791
-	ld a, [$DFE1]
+	ld a, [wCurrentSquareSFX]
 	jr .jmp_67A2 ; WTF is this bullshit
 
 .jmp_6796
-	ld a, [$DFE1]
+	ld a, [wCurrentSquareSFX]
 	cp a, SFX_STOMP
 	ret z
 .jmp_679C
-	ld a, [$DFE1]
+	ld a, [wCurrentSquareSFX]
 	cp a, SFX_COIN
 	ret z
 .jmp_67A2
@@ -598,7 +598,7 @@ StartJumpSFX:: ; 67AF
 	ret
 
 ContinueJumpSFX:: ; 67C4
-	call updateSoundProgress
+	call UpdateSoundProgress
 	and a
 	jp z, ContinueSquareSFX.stop
 	ld hl, $DFE4
@@ -629,12 +629,12 @@ StartSuperballSFX:: ; 67E4
 	jp Jmp_69C6
 
 ContinueSquareSFX
-	call updateSoundProgress
+	call UpdateSoundProgress
 	and a
 	ret nz
 .stop
 	xor a
-	ld [$DFE1], a
+	ld [wCurrentSquareSFX], a
 	ldh [rNR10], a
 	ld a, $08
 	ldh [rNR12], a
@@ -683,7 +683,7 @@ StartStompSFX:: ; 683D
 	jp Jmp_69C6
 
 ContinueStompSFX:: ; 6849
-	call updateSoundProgress
+	call UpdateSoundProgress
 	and a
 	ret nz
 	ld hl, $DFE4
@@ -720,7 +720,7 @@ StartGrowSFX:: ; 687A
 	jp Jmp_69C6
 
 ContinueSweepSquareSFX::
-	call updateSoundProgress
+	call UpdateSoundProgress
 	and a
 	ret nz
 	ld hl, $DFE6
@@ -753,7 +753,7 @@ InjuryEnvelopeData::
 	db $F3, $B3, $A3, $93, $83, $73, $63, $53, $43, $33, $23, $23, $13, $00
 
 StartInjurySFX::
-	ld a, [$DFE1]
+	ld a, [wCurrentSquareSFX]
 	cp a, SFX_1UP
 	ret z
 	ld a, 6
@@ -761,7 +761,7 @@ StartInjurySFX::
 	jp Jmp_69C6
 
 ContinueInjurySFX::
-	call updateSoundProgress
+	call UpdateSoundProgress
 	and a
 	ret nz
 	ld hl, $DFE4
@@ -801,7 +801,7 @@ OneUpNote6::
 	db $00, $30, $F0, $CB, $C7 ; 2473 Hz ~ D#7 (11 cents flat)
 
 ContinueOneUpSFX:: ; 6916
-	call updateSoundProgress
+	call UpdateSoundProgress
 	and a
 	ret nz
 	ld a, [$DFE4]		; when sound has ended, increment and load a new note
@@ -849,7 +849,7 @@ StartExplosionSFX:: ; 6957
 	jp Jmp_69C6
 
 Call_695F:: ; 695F
-	ld a, [$DFF9]
+	ld a, [wCurrentNoiseSFX]
 	cp a, SFX_EXPLOSION
 	ret z
 	ret
@@ -871,7 +871,7 @@ StartDeathCrySFX:: ; 6970
 	jp Jmp_69C6
 
 ContinueDeathCrySFX:: ; 697C
-	call updateSoundProgress
+	call UpdateSoundProgress
 	and a
 	ret nz
 	ld hl, $DFFC
@@ -905,12 +905,12 @@ StartBrickShatterSFX:: ; 69A3
 	jp Jmp_69C6
 
 ContinueNoiseSFX:: ; 69AF
-	call updateSoundProgress
+	call UpdateSoundProgress
 	and a
 	ret nz
 .stop
 	xor a
-	ld [$DFF9], a
+	ld [wCurrentNoiseSFX], a
 	ld a, $08
 	ldh [rNR42], a		; mute noise channel, setup envelope?
 	ld a, $80
@@ -999,7 +999,7 @@ LookupSoundPointer:: ; 6A07
 	ld a, h				; HL ← BC
 	ret
 
-updateSoundProgress:: ;; 6A19
+UpdateSoundProgress:: ;; 6A19
 	push de			; DE is DFE0(or other) + 2 here
 	ld l, e
 	ld h, d			; HL ← DE
@@ -1030,10 +1030,10 @@ SetupWavePattern:: ; 6A26
 
 _InitSound:: ; 6A33
 	xor a
-	ld [$DFE1], a
-	ld [$DFE9], a
-	ld [$DFF1], a
-	ld [$DFF9], a	; currently playing music and sfx
+	ld [wCurrentSquareSFX], a
+	ld [wCurrentSong], a
+	ld [wCurrentWaveSFX], a
+	ld [wCurrentNoiseSFX], a	; currently playing music and sfx
 	ld [$DF1F], a
 	ld [$DF2F], a
 	ld [$DF3F], a
@@ -1042,7 +1042,8 @@ _InitSound:: ; 6A33
 	ldh [$FFDE], a
 	ld a, $FF
 	ldh [rNR51], a	; enable all channels to both outputs
-.muteChannels
+
+MuteSound::
 	ld a, 8
 	ldh [rNR12], a
 	ldh [rNR22], a
@@ -1057,7 +1058,7 @@ _InitSound:: ; 6A33
 	ret
 
 PlaySquareSFX:: ; 6A6A
-	ld de, wSquareSFX			; non zero to start sfx
+	ld de, wPlaySquareSFX			; non zero to start sfx
 	ld a, [de]
 	and a
 	jr z, .continue			; if zero, play the current sound
@@ -1082,7 +1083,7 @@ PlaySquareSFX:: ; 6A6A
 	ret
 
 PlayNoiseSFX:: ; 6A8E
-	ld de, wNoiseSFX
+	ld de, wPlayNoiseSFX
 	ld a, [de]
 	and a
 	jr z, .continue
@@ -1110,7 +1111,7 @@ _Unreachable ; 6AB2
 	jp _InitSound
 
 StartMusic:: ; 6AB5
-	ld hl, wActiveMusic
+	ld hl, wPlaySong
 	ld a, [hli]
 	and a
 	ret z
@@ -1128,7 +1129,7 @@ StartMusic:: ; 6AB5
 	jp .initStereo		; Weird
 
 .initStereo
-	ld a, [$DFE9]
+	ld a, [wCurrentSong]
 	ld hl, StereoData
 .loop
 	dec a
@@ -1155,7 +1156,7 @@ StartMusic:: ; 6AB5
 	ret
 
 PanExplosion:: ; 6AF6
-	ld a, [$DFF9]
+	ld a, [wCurrentNoiseSFX]
 	cp a, SFX_EXPLOSION		; Hmh?
 	ret nz
 	ld a, [hl]				; Always FFD5. Bug
@@ -1164,16 +1165,16 @@ PanExplosion:: ; 6AF6
 	jr z, .applyMask
 	ld a, $7F				; Noise right enable
 .applyMask
-	call PanStereo.applyChannelEnableMasks
+	call ApplyChannelEnableMasks
 .ret
 	ret
 
 PanStereo:: ; 6B09
-	ld a, [$DFE9]
+	ld a, [wCurrentSong]
 	and a
 	ret z
 	ldh a, [hMonoOrStereo]
-	cp a, $01				; 01 = Mono, 02 = Stereo
+	cp a, 1					; 01 = Mono, 02 = Stereo
 	jr z, PanExplosion.ret	; Bug... RET Z
 	ld hl, hPanTimer
 	call PanExplosion		; Skips over following code if explosion is playing
@@ -1188,9 +1189,10 @@ PanStereo:: ; 6B09
 	inc [hl]				; FFD7 - hPanCounter
 	ldh a, [hChannelEnableMask1]
 	bit 0, [hl]				; Counter is only used for its lowest bit... Bug
-	jr z, .applyChannelEnableMasks
+	jr z, ApplyChannelEnableMasks
 	ldh a, [hChannelEnableMask2]
-.applyChannelEnableMasks
+
+ApplyChannelEnableMasks::
 	ldh [rNR51], a
 	ret
 
@@ -1247,9 +1249,9 @@ CopyPointer:: ; 6B86
 ; setup array of addresses and such at DF00-DF4F
 ; HL contains the pointer from Data_663C
 Call_6B8C::; 6B8C
-	call _InitSound.muteChannels
+	call MuteSound
 	xor a
-	ldh [$FFD5], a
+	ldh [hPanTimer], a
 	ldh [$FFD7], a
 	ld de, $DF00
 	ld b, $00
@@ -1441,15 +1443,15 @@ Jmp_6C4C
 	jr .jmp_6C86
 
 .stopSong
-	ld hl, $DFE9
+	ld hl, wCurrentSong
 	ld [hl], $00
 	ld a, $FF
 	ldh [rNR51], a
-	call _InitSound.muteChannels
+	call MuteSound
 	ret
 
 PlayMusic:: ; 6CBE
-	ld hl, $DFE9				; music currently playing
+	ld hl, wCurrentSong				; music currently playing
 	ld a, [hl]
 	and a
 	ret z

@@ -635,7 +635,7 @@ _HandleBonusGameWalking:: ; 5B65
 	and a
 	jr nz, .jmp_5B73
 	inc [hl]				; start walking
-	ld hl, wActiveMusic
+	ld hl, wPlaySong
 	ld a, $0A				; walking music
 	ld [hl], a
 .jmp_5B73
@@ -918,7 +918,7 @@ _HandleBonusGameGettingPrice:: ; 5CDE
 	ld a, $02				; 1-UP
 	ld [$DA17], a
 .playWinSound
-	ld hl, wActiveMusic
+	ld hl, wPlaySong
 	ld a, $0D
 	ld [hl], a				; Win sound
 	ret
@@ -937,7 +937,7 @@ _HandleBonusGameGettingPrice:: ; 5CDE
 	ldh a, [hSuperballMario]
 	and a
 	jr z, .awardFlower
-	ld hl, wActiveMusic
+	ld hl, wPlaySong
 	ld a, MUSIC_BONUS_GAME_LOSE		; Lose sound
 	ld [hl], a
 	ld a, $01				; no prize
@@ -992,7 +992,7 @@ _HandleBonusGameGettingPrice:: ; 5CDE
 	jr nz, .powerupAnimation
 	inc a
 	ld [$DA1C], a
-	ld hl, wSquareSFX
+	ld hl, wPlaySquareSFX
 	ld a, 4				; powerup sound
 	ld [hl], a
 	ldh a, [hSuperStatus]
@@ -1135,7 +1135,7 @@ _HandleBonusGameGettingPrice:: ; 5CDE
 	ld [$DA20], a
 	cp a, $06
 	ret nz
-	ld hl, wSquareSFX
+	ld hl, wPlaySquareSFX
 	ld a, 8				; 1UP sound
 	ld [hl], a
 	ld a, [wLives]
@@ -1188,7 +1188,7 @@ _HandleBonusGameGettingPrice:: ; 5CDE
 	ld [$DA20], a
 	cp a, $05
 	ret nz
-	ld hl, wSquareSFX
+	ld hl, wPlaySquareSFX
 	ld a, $02
 	ld [$DA21], a
 	ret
