@@ -71,7 +71,7 @@ Call_4823:: ; 4823
 	ld b, 7
 	ld de, $FF86
 .jmp_484F
-	ldi a, [hl]
+	ld a, [hli]
 	ld [de], a
 	inc de
 	dec b
@@ -184,11 +184,11 @@ Call_4823:: ; 4823
 .jmp_48DE
 	ldh a, [$FF93]
 .jmp_48E0
-	ldi [hl], a
+	ld [hli], a
 	ldh a, [$FF92]
-	ldi [hl], a
+	ld [hli], a
 	ldh a, [$FF89]
-	ldi [hl], a
+	ld [hli], a
 	ldh a, [$FF94]
 	ld b, a
 	ldh a, [$FF8B]
@@ -196,7 +196,7 @@ Call_4823:: ; 4823
 	ld b, a
 	ldh a, [$FF8A]
 	or b
-	ldi [hl], a
+	ld [hli], a
 	ld a, h
 	ldh [$FF8D], a
 	ld a, l
@@ -617,7 +617,7 @@ ContinueJumpSFX:: ; 67C4
 	and a, $3F
 	ld [$FF00+c], a		; rNR14
 	pop hl
-	ldd [hl], a
+	ld [hld], a
 	ld [hl], b
 	ret
 
@@ -972,7 +972,7 @@ SetupChannel:: ; 69E5
 	ld c, LOW(rNR41)
 	ld b, $04
 .loopCopy				; copy B bytes from HL to the channel in C
-	ldi a, [hl]
+	ld a, [hli]
 	ld [$FF00+c], a
 	inc c
 	dec b
@@ -1004,7 +1004,7 @@ updateSoundProgress:: ;; 6A19
 	ld l, e
 	ld h, d			; HL ← DE
 	inc [hl]		; increment position
-	ldi a, [hl]
+	ld a, [hli]
 	cp [hl]			; and compare with sound length
 	jr nz, .out
 	dec l			; end of sound, return zero
@@ -1019,7 +1019,7 @@ SetupWavePattern:: ; 6A26
 	push bc
 	ld c, $30		; FF30 Wave pattern RAM
 .loop
-	ldi a, [hl]
+	ld a, [hli]
 	ld [$FF00+c], a
 	inc c
 	ld a, c
@@ -1111,7 +1111,7 @@ _Unreachable ; 6AB2
 
 StartMusic:: ; 6AB5
 	ld hl, wActiveMusic
-	ldi a, [hl]
+	ld a, [hli]
 	and a
 	ret z
 	cp a, $14
@@ -1140,14 +1140,14 @@ StartMusic:: ; 6AB5
 	jr .loop
 
 .writeStereoData
-	ldi a, [hl]
+	ld a, [hli]
 	ldh [hMonoOrStereo], a
-	ldi a, [hl]
+	ld a, [hli]
 	ldh [hPanInterval], a
-	ldi a, [hl]
+	ld a, [hli]
 	ldh [hChannelEnableMask1], a
 	ldh [rNR51], a
-	ldi a, [hl]
+	ld a, [hli]
 	ldh [hChannelEnableMask2], a
 	xor a
 	ldh [hPanTimer], a
@@ -1178,7 +1178,7 @@ PanStereo:: ; 6B09
 	ld hl, hPanTimer
 	call PanExplosion		; Skips over following code if explosion is playing
 	inc [hl]				; FFD5 - hPanTimer
-	ldi a, [hl]
+	ld a, [hli]
 	cp [hl]					; FFD6 - hPanInterval
 	ret nz
 	dec l
@@ -1223,7 +1223,7 @@ StereoData:: ; 6B2F
 
 ; copy 2 bytes from the address at HL to DE
 CopyPointerIndirect:: ; 6B7B
-	ldi a, [hl]
+	ld a, [hli]
 	ld c, a
 	ld a, [hl]
 	ld b, a
@@ -1237,10 +1237,10 @@ CopyPointerIndirect:: ; 6B7B
 
 ; copy 2 bytes from HL to DE
 CopyPointer:: ; 6B86
-	ldi a, [hl]
+	ld a, [hli]
 	ld [de], a
 	inc e
-	ldi a, [hl]
+	ld a, [hli]
 	ld [de], a
 	ret
 
@@ -1253,7 +1253,7 @@ Call_6B8C::; 6B8C
 	ldh [$FFD7], a
 	ld de, $DF00
 	ld b, $00
-	ldi a, [hl]
+	ld a, [hli]
 	ld [de], a				; byte 0 goes into DF00 (unused, always zero?)
 	inc e
 	call CopyPointer			; byte 1,2 into DF01, DF02
@@ -1336,24 +1336,24 @@ Jmp_6C00 ; 6C00
 ; increment the address located at HL
 IncrementPointer:: ; 6C30
 	push de
-	ldi a, [hl]
+	ld a, [hli]
 	ld e, a
-	ldd a, [hl]
+	ld a, [hld]
 	ld d, a
 	inc de
 .storeDE
 	ld a, e
-	ldi [hl], a
+	ld [hli], a
 	ld a, d
-	ldd [hl], a
+	ld [hld], a
 	pop de
 	ret
 
 IncrementPointerTwice:: ; 6C3C
 	push de
-	ldi a, [hl]
+	ld a, [hli]
 	ld e, a
-	ldd a, [hl]
+	ld a, [hld]
 	ld d, a
 	inc de
 	inc de
@@ -1361,9 +1361,9 @@ IncrementPointerTwice:: ; 6C3C
 
 ; todo name
 LoadFromHLindirect:: ; 6C45
-	ldi a, [hl]
+	ld a, [hli]
 	ld c, a
-	ldd a, [hl]
+	ld a, [hld]
 	ld b, a				; BC ← [HL]
 	ld a, [bc]			; A ← [BC]
 	ld b, a				; B ← [BC]
@@ -1435,9 +1435,9 @@ Jmp_6C4C
 	ld d, a						; DE is restart pointer
 	pop hl
 	ld a, e
-	ldi [hl], a					; put it in DFx0-DFx1
+	ld [hli], a					; put it in DFx0-DFx1
 	ld a, d
-	ldd [hl], a
+	ld [hld], a
 	jr .jmp_6C86
 
 .stopSong
@@ -1458,7 +1458,7 @@ PlayMusic:: ; 6CBE
 	ld hl, $DF10
 .jmp_6CCB
 	inc l
-	ldi a, [hl]					; DFx1
+	ld a, [hli]					; DFx1
 	and a
 	jp z, Jmp_6C4C.jmp_6C7A
 	dec [hl]					; DFx2
@@ -1490,7 +1490,7 @@ PlayMusic:: ; 6CBE
 	ld a, [hl]
 	pop hl
 	dec l
-	ldi [hl], a					; DFx3
+	ld [hli], a					; DFx3
 	call IncrementPointer
 	call LoadFromHLindirect		; DFx4 - DFx5
 .jmp_6D04
@@ -1515,7 +1515,7 @@ PlayMusic:: ; 6CBE
 	ld [hl], 00					; DFxB
 	ld hl, NotePitches
 	add hl, bc
-	ldi a, [hl]
+	ld a, [hli]
 	ld [de], a					; DFx9
 	inc e
 	ld a, [hl]
@@ -1534,7 +1534,7 @@ PlayMusic:: ; 6CBE
 	ld hl, Data_6F06
 	add hl, bc
 .loop
-	ldi a, [hl]
+	ld a, [hli]
 	ld [de], a
 	inc e
 	ld a, e
@@ -1565,7 +1565,7 @@ PlayMusic:: ; 6CBE
 	inc l
 	inc l
 	inc l
-	ldi a, [hl]
+	ld a, [hli]
 	ld e, a
 	ld d, $00
 	jr .jmp_6D84
@@ -1582,20 +1582,20 @@ PlayMusic:: ; 6CBE
 	inc l
 	inc l
 	inc l
-	ldd a, [hl]				; DFx7
+	ld a, [hld]				; DFx7
 	and a
 	jr nz, .jmp_6DCE
-	ldi a, [hl]				; DFx6
+	ld a, [hli]				; DFx6
 	ld e, a
 .jmp_6D81
 	inc l
-	ldi a, [hl]				; DFx8
+	ld a, [hli]				; DFx8
 	ld d, a
 .jmp_6D84
 	push hl
 	inc l
 	inc l
-	ldi a, [hl]				; DFxB
+	ld a, [hli]				; DFxB
 	and a
 	jr z, .jmp_6D8D
 	ld e, $08
@@ -1614,7 +1614,7 @@ PlayMusic:: ; 6CBE
 	ld a, e
 	ld [$FF00+c], a			; NRx2
 	inc c
-	ldi a, [hl]				; DFx9 freq lo
+	ld a, [hli]				; DFx9 freq lo
 	ld [$FF00+c], a			; NRx3
 	inc c
 	ld a, [hl]				; DFxA freq hi
@@ -1627,8 +1627,8 @@ PlayMusic:: ; 6CBE
 .resetNoteTimer
 	pop hl
 	dec l
-	ldd a, [hl]				; DFx4 - note length
-	ldd [hl], a				; DFx3 - note timer
+	ld a, [hld]				; DFx4 - note length
+	ld [hld], a				; DFx3 - note timer
 	dec l
 .nextChannel
 	ld de, hCurrentChannel
@@ -1689,7 +1689,7 @@ PlayMusic:: ; 6CBE
 
 .jmp_6DFE
 	inc l
-	ldi a, [hl]				; DFx9 freq lo
+	ld a, [hli]				; DFx9 freq lo
 	ld e, a
 	ld a, [hl]				; DFxA freq hi
 	ld d, a

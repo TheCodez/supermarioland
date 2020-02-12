@@ -1,4 +1,5 @@
 INCLUDE "charmap.asm"
+INCLUDE "sound_constants.asm"
 INCLUDE "constants.asm"
 INCLUDE "gbhw.asm"
 INCLUDE "hram.asm"
@@ -96,12 +97,12 @@ UpdateGameTimer:: ; 584B
 	ld a, $28			; 40 frames per tick, 2/3rd second. Why not 60?
 	ld [hl], a
 	inc hl
-	ldi a, [hl]			; ones and tens
+	ld a, [hli]			; ones and tens
 	ld c, [hl]			; hundreds
 	dec hl
 	sub a, 1
 	daa
-	ldi [hl], a
+	ld [hli], a
 	cp a, $99
 	jr nz, .checkTimerExpiration
 	dec c				; decrement one from the hundreds
@@ -212,9 +213,9 @@ UpdateFloaties:: ; 5892
 	ld [wFloaty3_IsCoin], a
 .setupCoordinates
 	ldh a, [hFloatyY]
-	ldi [hl], a			; OAM Y
+	ld [hli], a			; OAM Y
 	ldh a, [hFloatyX]
-	ldi [hl], a			; OAM X
+	ld [hli], a			; OAM X
 	ld a, b
 	ld de, $5958		;  1 00
 	cp a, $01
@@ -254,13 +255,13 @@ UpdateFloaties:: ; 5892
 	ld de, $F6FE	; F6FE coin sprite
 .setupTiles
 	ld a, d			; left object
-	ldi [hl], a
+	ld [hli], a
 	inc hl
 	ldh a, [hFloatyY]
-	ldi [hl], a
+	ld [hli], a
 	ldh a, [hFloatyX]
 	add a, $8		; one tile to the right
-	ldi [hl], a
+	ld [hli], a
 	ld a, e			; right object
 	ld [hl], a
 	xor a
@@ -418,14 +419,14 @@ UpdateFloaties:: ; 5892
 	ld a, $F6
 	ld [de], a
 	xor a			; hide objects
-	ldd [hl], a		; object tile
-	ldd [hl], a		; object X pos
-	ldi [hl], a		; object Y pos
+	ld [hld], a		; object tile
+	ld [hld], a		; object X pos
+	ld [hli], a		; object Y pos
 	inc l
 	inc l
 	inc l
-	ldi [hl], a		; Y pos
-	ldi [hl], a		; X pos
+	ld [hli], a		; Y pos
+	ld [hli], a		; X pos
 	ld [hl], a		; tile number
 	ld a, l
 	ld hl, wFloaty0_IsCoin
@@ -466,10 +467,10 @@ _HandleBonusGameMarioSprites:: ; 5A72
 	dec b
 	jr nz, .loop		; A = $20 + $18 * rand(1,4)
 	ld b, a
-	ldi [hl], a		; Y pos
+	ld [hli], a		; Y pos
 	ld a, $10
 	ld c, a
-	ldi [hl], a		; X pos
+	ld [hli], a		; X pos
 	xor a
 	ld d, a
 	ldh a, [hSuperStatus]
@@ -479,33 +480,33 @@ _HandleBonusGameMarioSprites:: ; 5A72
 	ld d, a
 .jmp_5A93
 	ld a, d
-	ldi [hl], a		; tile number
+	ld [hli], a		; tile number
 	inc l			; no attributes
 	ld a, b
-	ldi [hl], a		; Y pos
+	ld [hli], a		; Y pos
 	ld a, c
 	add a, 8		; one to the right
-	ldi [hl], a		; X pos
+	ld [hli], a		; X pos
 	ld a, d
 	inc a
-	ldi [hl], a		; tile number
+	ld [hli], a		; tile number
 	inc l			; no attributes
 	ld a, b
 	add a, 8		; one down
 	ld b, a
-	ldi [hl], a		; Y pos
+	ld [hli], a		; Y pos
 	ld a, c
-	ldi [hl], a		; X pos
+	ld [hli], a		; X pos
 	ld a, d
 	add a, 16
 	ld d, a
-	ldi [hl], a		; tile number
+	ld [hli], a		; tile number
 	inc l			; no attributes
 	ld a, b
-	ldi [hl], a		; Y pos
+	ld [hli], a		; Y pos
 	ld a, c
 	add a, 8		; one to the right
-	ldi [hl], a		; X pos
+	ld [hli], a		; X pos
 	inc d
 	ld a, d
 	ld [hl], a		; tile number
@@ -540,7 +541,7 @@ _HandleBonusGame:: ; 5ABB
 .loop1
 	ld a, $18
 	add [hl]		; down 3 tiles
-	ldi [hl], a
+	ld [hli], a
 	inc l
 	inc l
 	inc l
@@ -552,7 +553,7 @@ _HandleBonusGame:: ; 5ABB
 	ld b, 2			; 2 bottom objects
 	ld a, $38		; top floor
 .loop2
-	ldi [hl], a
+	ld [hli], a
 	inc l
 	inc l
 	inc l
@@ -561,7 +562,7 @@ _HandleBonusGame:: ; 5ABB
 	ld b, 2			; 2 top objects
 	ld a, $40
 .loop3
-	ldi [hl], a
+	ld [hli], a
 	inc l
 	inc l
 	inc l
@@ -596,22 +597,22 @@ _HandleBonusGame:: ; 5ABB
 	bit 0, a
 	jr z, .jmp_5B45
 	ld a, $2E
-	ldi [hl], a
+	ld [hli], a
 	ld a, $2F
-	ldi [hl], a
+	ld [hli], a
 	ld a, $2F
-	ldi [hl], a
+	ld [hli], a
 	ld a, $30
 	ld [hl], a
 	jr .jmp_5B51
 
 .jmp_5B45
 	ld a, $2D
-	ldi [hl], a
+	ld [hli], a
 	ld a, $2C
-	ldi [hl], a
+	ld [hli], a
 	ld a, $2C
-	ldi [hl], a
+	ld [hli], a
 	ld a, $2D
 	ld [hl], a
 .jmp_5B51
@@ -669,7 +670,7 @@ _HandleBonusGameWalking:: ; 5B65
 	ld c, a					; tiles further
 .loadTileNumber
 	ld a, c
-	ldi [hl], a				; tile number
+	ld [hli], a				; tile number
 	inc de
 	inc l
 	inc l
@@ -679,7 +680,7 @@ _HandleBonusGameWalking:: ; 5B65
 	add a, 4
 	ld [$DA14], a
 	ld hl, wOAMBuffer + 4 * $C + 1
-	ldd a, [hl]
+	ld a, [hld]
 	cp a, $80
 	jr nc, .getPrize
 	add a, 4
@@ -753,7 +754,7 @@ _HandleBonusGameDescendLadder:: ; 5BEB
 	ld c, a
 .loadTileNumber
 	ld a, c
-	ldi [hl], a
+	ld [hli], a
 	inc de
 	inc l
 	dec b
@@ -812,7 +813,7 @@ _HandleBonusGameAscendLadder:: ; 5C44
 	ld c, a
 .loadTileNumber
 	ld a, c
-	ldi [hl], a
+	ld [hli], a
 	inc de
 	inc l
 	dec b
@@ -870,37 +871,37 @@ _HandleBonusGameGettingPrice:: ; 5CDE
 	cp a, $38
 	jr z, .checkHiMidFloor
 	ld a, " "
-	ldi [hl], a				; erase the *
-	ldd [hl], a				; and the prize
+	ld [hli], a				; erase the *
+	ld [hld], a				; and the prize
 .checkHiMidFloor
 	add hl, de				; next floor
 	ld a, b
 	cp a, $50
 	jr z, .checkLoMidFloor
 	ld a, " "
-	ldi [hl], a				; erase the *
-	ldd [hl], a				; and the prize
+	ld [hli], a				; erase the *
+	ld [hld], a				; and the prize
 .checkLoMidFloor
 	add hl, de				; next floor
 	ld a, b
 	cp a, $68
 	jr z, .checkBottomFloor
 	ld a, " "
-	ldi [hl], a				; erase the *
-	ldd [hl], a				; and the prize
+	ld [hli], a				; erase the *
+	ld [hld], a				; and the prize
 .checkBottomFloor
 	add hl, de				; next floor
 	ld a, b
 	cp a, $80
 	jr z, .checkPrize
 	ld a, " "
-	ldi [hl], a				; erase the *
+	ld [hli], a				; erase the *
 	ld [hl], a				; and the prize
 .checkPrize
 	dec c					; erase prizes twice. todo why
 	jr nz, .erasePrizes
 	ld hl, wOAMBuffer + 4 * $C + 1	; X
-	ldd a, [hl]
+	ld a, [hld]
 	add a, 8 * 3			; 3 tiles ahead
 	ldh [$FFAE], a
 	ld a, [hl]				; Y
@@ -1008,7 +1009,7 @@ _HandleBonusGameGettingPrice:: ; 5CDE
 .superLoop
 	ld a, [hl]
 	add a, $20
-	ldi [hl], a
+	ld [hli], a
 	inc l
 	inc l
 	inc l
@@ -1022,7 +1023,7 @@ _HandleBonusGameGettingPrice:: ; 5CDE
 .smallLoop
 	ld a, [hl]
 	sub a, $20
-	ldi [hl], a
+	ld [hli], a
 	inc l
 	inc l
 	inc l
@@ -1051,32 +1052,32 @@ _HandleBonusGameGettingPrice:: ; 5CDE
 	ld hl, wOAMBuffer + 4 * $C
 	ld a, $38
 	ld b, a
-	ldi [hl], a
+	ld [hli], a
 	ld a, $58
 	ld c, a
-	ldi [hl], a
+	ld [hli], a
 	inc l
 	inc l
 	ld a, b
-	ldi [hl], a
+	ld [hli], a
 	ld a, c
 	add a, 8
-	ldi [hl], a
+	ld [hli], a
 	inc l
 	inc l
 	ld a, b
 	add a, 8
 	ld b, a
-	ldi [hl], a
+	ld [hli], a
 	ld a, c
-	ldi [hl], a
+	ld [hli], a
 	inc l
 	inc l
 	ld a, b
-	ldi [hl], a
+	ld [hli], a
 	ld a, c
 	add a, 8
-	ldi [hl], a
+	ld [hli], a
 	xor a
 	inc a
 	ld [$DA20], a
@@ -1091,7 +1092,7 @@ _HandleBonusGameGettingPrice:: ; 5CDE
 	jr nz, .jmp_5EB2
 	ld a, [hl]
 	dec a
-	ldi [hl], a
+	ld [hli], a
 	inc l
 	ld a, $08
 	ld b, a
@@ -1103,28 +1104,28 @@ _HandleBonusGameGettingPrice:: ; 5CDE
 	ld b, a
 .jmp_5E5E
 	ld a, b
-	ldi [hl], a
+	ld [hli], a
 	inc l
 	ld a, [hl]
 	dec a
-	ldi [hl], a
+	ld [hli], a
 	inc l
 	ld a, b
 	inc a
-	ldi [hl], a
+	ld [hli], a
 	inc l
 	ld a, [hl]
 	dec a
-	ldi [hl], a
+	ld [hli], a
 	inc l
 	ld a, b
 	add a, $10
 	ld b, a
-	ldi [hl], a
+	ld [hli], a
 	inc l
 	ld a, [hl]
 	dec a
-	ldi [hl], a
+	ld [hli], a
 	inc l
 	ld a, b
 	inc a
@@ -1163,19 +1164,19 @@ _HandleBonusGameGettingPrice:: ; 5CDE
 .jmp_5EB2
 	ld a, [hl]
 	inc a
-	ldi [hl], a
+	ld [hli], a
 	inc l
 	inc l
 	inc l
 	ld a, [hl]
 	inc a
-	ldi [hl], a
+	ld [hli], a
 	inc l
 	inc l
 	inc l
 	ld a, [hl]
 	inc a
-	ldi [hl], a
+	ld [hli], a
 	inc l
 	inc l
 	inc l
@@ -1195,7 +1196,7 @@ _HandleBonusGameGettingPrice:: ; 5CDE
 .jmp_5EDA
 	ld a, [hl]
 	inc a
-	ldi [hl], a
+	ld [hli], a
 	inc l
 	xor a
 	ld b, a
@@ -1207,28 +1208,28 @@ _HandleBonusGameGettingPrice:: ; 5CDE
 	ld b, a
 .jmp_5EEA
 	ld a, b
-	ldi [hl], a
+	ld [hli], a
 	inc l
 	ld a, [hl]
 	inc a
-	ldi [hl], a
+	ld [hli], a
 	inc l
 	ld a, b
 	inc a
-	ldi [hl], a
+	ld [hli], a
 	inc l
 	ld a, [hl]
 	inc a
-	ldi [hl], a
+	ld [hli], a
 	inc l
 	ld a, b
 	add a, $10
 	ld b, a
-	ldi [hl], a
+	ld [hli], a
 	inc l
 	ld a, [hl]
 	inc a
-	ldi [hl], a
+	ld [hli], a
 	inc l
 	ld a, b
 	inc a

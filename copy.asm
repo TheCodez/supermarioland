@@ -1,6 +1,6 @@
 ; Copy BC bytes from HL to DE
 CopyData::	; 05DE
-	ldi a, [hl]
+	ld a, [hli]
 	ld [de], a
 	inc de
 	dec bc

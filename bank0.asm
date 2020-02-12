@@ -101,11 +101,11 @@ AddScore:: ; 0166
 	ld hl, wScore
 	add [hl]			; Add E to the ones and tens
 	daa
-	ldi [hl], a
+	ld [hli], a
 	ld a, d				; Add D to the hundreds and thousands
 	adc [hl]			; with carry from the lower digits
 	daa
-	ldi [hl], a
+	ld [hli], a
 	ld a, 0				; No score above 9999 is ever awarded, so just add
 	adc [hl]			; 0 to propagate carry
 	daa
@@ -114,8 +114,8 @@ AddScore:: ; 0166
 	ldh [$FFB1], a		; TODO We've seen this address before
 	ret nc
 	ld a, $99			; Score saturates at 999999
-	ldd [hl], a
-	ldd [hl], a
+	ld [hld], a
+	ld [hld], a
 	ld [hl], a
 	ret
 
@@ -146,9 +146,9 @@ Init::	; 0185
 	ldh [rOBP1], a
 	ld hl, rNR52
 	ld a, $80
-	ldd [hl], a		; Turn the sound on
+	ld [hld], a		; Turn the sound on
 	ld a, $FF
-	ldd [hl], a		; Output all sounds to both terminals
+	ld [hld], a		; Output all sounds to both terminals
 	ld [hl], $77	; Turn the volume up to the max
 	ld sp, $CFFF
 
@@ -157,7 +157,7 @@ Init::	; 0185
 	ld c, $40
 	ld b, 0			; CB = $4000, size of Work RAM
 .clearWRAMloop		; Also clears non-existent cartridge RAM. Bug?
-	ldd [hl], a
+	ld [hld], a
 	dec b
 	jr nz, .clearWRAMloop
 	dec c			; Why this doesn't use a loop on BC is beyond me...
@@ -168,7 +168,7 @@ Init::	; 0185
 	xor a			; Unnecessary
 	ld b, 0
 .clearVRAMloop
-	ldd [hl], a
+	ld [hld], a
 	dec b
 	jr nz, .clearVRAMloop
 	dec c
@@ -177,14 +177,14 @@ Init::	; 0185
 	ld hl, $FEFF	; End of OAM (well, over the end, bug?)
 	ld b, 0			; Underflow, clear $FF bytes
 .clearOAMloop
-	ldd [hl], a
+	ld [hld], a
 	dec b
 	jr nz, .clearOAMloop
 
 	ld hl, $FFFE	; End of High RAM
 	ld b, $80		; Size of High RAM, off by one, bug?
 .clearHRAMloop
-	ldd [hl], a
+	ld [hld], a
 	dec b
 	jr nz, .clearHRAMloop
 
@@ -192,7 +192,7 @@ Init::	; 0185
 	ld b, DMARoutineEnd - DMARoutine + 2 ; Bug
 	ld hl, DMARoutine
 .copyDMAroutine		; No memory can be accessed during DMA other than HRAM,
-	ldi a, [hl]		; so the routine is copied and executed there
+	ld a, [hli]		; so the routine is copied and executed there
 	ld [$FF00+c], a
 	inc c
 	dec b
@@ -362,16 +362,16 @@ InitMenu::
 	ld hl, wOAMBuffer
 	ld b, $9F
 .clearSpritesLoop
-	ldi [hl], a
+	ld [hli], a
 	dec b
 	jr nz, .clearSpritesLoop
 	ldh [hSuperStatus], a
 	ld [wGameOverWindowEnabled], a
 	ld [wGameOverTimerExpired], a
 	ld hl, $C0D8
-	ldi [hl], a
-	ldi [hl], a
-	ldi [hl], a
+	ld [hli], a
+	ld [hli], a
+	ld [hli], a
 	ld a, [wWinCount]	; restore from Work RAM, possibly overwritten for demo
 	ldh [hWinCount], a	; Expert Mode activated when non zero
 	ld hl, MenuTiles1
@@ -445,7 +445,7 @@ InitMenu::
 	ld de, wTopScore + 2
 	ld b, 3
 .replaceTopScore
-	ldd a, [hl]
+	ld a, [hld]
 	ld [de], a
 	dec e
 	dec b
@@ -469,7 +469,7 @@ InitMenu::
 	ld de, vBGMap0 + 14 * SCRN_VX_B + 6 ; $99C6
 	ld b, ContinueTextEnd - ContinueText
 .loop
-	ldi a, [hl]
+	ld a, [hli]
 	ld [de], a
 	inc e
 	dec b
@@ -629,7 +629,7 @@ HandleStartMenu::
 	inc l
 	ld [hl], 120	; X for world
 	inc l
-	ldi [hl], a		; world object index
+	ld [hli], a		; world object index
 	inc l
 	ld a, c
 	and a, $0F
@@ -637,7 +637,7 @@ HandleStartMenu::
 	inc l
 	ld [hl], 136	; X for level
 	inc l
-	ldi [hl], a		; level object index
+	ld [hli], a		; level object index
 	inc l
 	ld [hl], b		; Y
 	inc l
@@ -654,7 +654,7 @@ HandleStartMenu::
 	ld d, 0
 	ld hl, DemoLevels	; Demo levels
 	add hl, de
-	ldi a, [hl]
+	ld a, [hli]
 	ldh [hWorldAndLevel], a	; pseudo BCD encoded level
 	ld a, [hl]
 	ldh [hLevelIndex], a	; level index and encoding
@@ -695,7 +695,7 @@ DemoLevels:: ; 569
 FillStartMenuTopRow: ; 56F
 	ld b, SCRN_X_B
 .loop
-	ldi [hl], a
+	ld [hli], a
 	dec b
 	jr nz, .loop
 	ret
@@ -719,7 +719,7 @@ HandleStartLevel::	; 576
 	ld b, $5F
 	ld a, " "
 .loop
-	ldi [hl], a
+	ld [hli], a
 	dec b
 	jr nz, .loop
 	call PrepareHUD
@@ -756,7 +756,7 @@ ClearBGMap0:: ; 05CF
 EraseTileMap:: ; 5D5
 .loop
 	ld a, " "
-	ldd [hl], a
+	ld [hld], a
 	dec bc
 	ld a, b
 	or c
@@ -780,7 +780,7 @@ PrepareTiles::	; the three upper banks have tiles at the same location?
 	ld de, $C600	; copy of the animated background tile...
 	ld b, 8
 .loop
-	ldi a, [hl]
+	ld a, [hli]
 	ld [de], a
 	inc hl
 	inc de
@@ -793,7 +793,7 @@ PrepareHUD::
 	ld de, vBGMap0
 	ld b, 2 ; number of rows
 .loop
-	ldi a, [hl]
+	ld a, [hli]
 	ld [de], a
 	inc e
 	ld a, e
@@ -942,7 +942,7 @@ ResetToCheckpoint::
 	ld b, a
 	and a, $F0
 	swap a
-	ldi [hl], a
+	ld [hli], a
 	ld a, b
 	and a, $0F
 	inc l
@@ -952,7 +952,7 @@ ResetToCheckpoint::
 	ld b, PauseTextEnd - PauseText
 .loop
 	ld a, [de]
-	ldi [hl], a
+	ld [hli], a
 	inc de
 	dec b
 	jr nz, .loop
@@ -970,7 +970,7 @@ ResetToCheckpoint::
 	ld [wGameTimerExpiringFlag], a
 	ldh [rTMA], a
 	ld hl, wGameTimer + 1	; ones and tens
-	ldi [hl], a				; hundreds
+	ld [hli], a				; hundreds
 	ld [hl], $04
 	ld a, $28
 	ld [wGameTimer], a
@@ -1067,7 +1067,7 @@ DrawInitialScreen::
 	ld de, wLevelData	; level data: mario data etc.
 	ld b, $51			; Bug? One byte too much
 .copyLoop				; some sort of initialisation
-	ldi a, [hl]
+	ld a, [hli]
 	ld [de], a
 	inc de
 	dec b
@@ -1082,7 +1082,7 @@ DrawInitialScreen::
 	xor a
 	ld b, 6
 .clearLoop
-	ldi [hl], a
+	ld [hli], a
 	dec b
 	jr nz, .clearLoop	; clears FFE6-FFEB
 	ldh [$FFA3], a		; switches between 0 and 8, depending on scroll coord
@@ -1654,9 +1654,9 @@ Call_AEA:: ; AEA
 	ld [hl], 1		; D1xB
 	xor a
 	ld hl, wJumpStatus
-	ldi [hl], a			; C207 jump status
-	ldi [hl], a			; C208
-	ldi [hl], a			; C209
+	ld [hli], a			; C207 jump status
+	ld [hli], a			; C208
+	ld [hli], a			; C209
 	ld [hl], 1			; C20A 1 if mario on the ground
 	ld hl, wMarioMomentum		; two INC L's would've been cheaper >_<
 	ld a, [hl]
@@ -1685,7 +1685,7 @@ PrepareDeath:: ; B8D
 	ld a, [wMarioPosX]		; Mario's screen x position
 	add a, -8				; subtract 8
 	ld b, a
-	ldi [hl], a				; X position
+	ld [hli], a				; X position
 	ld [hl], $0F			; todo mario dying object top
 	inc l
 	ld [hl], SPRITE_NO_FLIP	; OAM bits
@@ -1703,7 +1703,7 @@ PrepareDeath:: ; B8D
 	ld a, b
 	add a, 8
 	ld b, a
-	ldi [hl], a				; X position
+	ld [hli], a				; X position
 	ld [hl], $0F			; top right dying mario object (mirrored)
 	inc l
 	ld [hl], SPRITE_XFLIP 	; OAM X flip
@@ -1817,7 +1817,7 @@ HandleLevelEndCountdownTimer:: ; C73
 	and a
 	ret nz
 	ld hl, wGameTimer + 1
-	ldi a, [hl]			; ones and tens
+	ld a, [hli]			; ones and tens
 	ld b, [hl]			; hundreds
 	or b
 	jr z, .endLevel
@@ -1885,8 +1885,8 @@ HandleLevelEnd:: ; CCB
 	ld [hl], $0C		; The end of game hangar is stored in level 13 of bank 3
 	inc l				; hl ← level screen
 	xor a
-	ldi [hl], a			; hl = hScreenIndex
-	ldi [hl], a			; hl = hColumnIndex
+	ld [hli], a			; hl = hScreenIndex
+	ld [hli], a			; hl = hColumnIndex
 	ldh [$FFA3], a
 	inc l
 	inc l
@@ -1984,7 +1984,7 @@ HandlePrepareNextLevel:: ; D49
 	ld hl, vChars1 + $200 ; $8A00
 .enemyTileLoop
 	ld a, [de]
-	ldi [hl], a
+	ld [hli], a
 	inc de
 	push hl
 	ld bc, $10000 - $8DD0
@@ -2001,7 +2001,7 @@ HandlePrepareNextLevel:: ; D49
 	ld hl, vChars2 + $310 ; $9310
 .backdropTileLoop
 	ld a, [de]
-	ldi [hl], a
+	ld [hli], a
 	inc de
 	ld a, h
 	cp a, $97
@@ -2012,7 +2012,7 @@ HandlePrepareNextLevel:: ; D49
 	ld de, $C600			; animated tile backup
 	ld b, 8
 .animatedTileLoop
-	ldi a, [hl]
+	ld a, [hli]
 	ld [de], a
 	inc hl				; Skip every first byte of a pair, which is always 00
 	inc de				; It's 1BPP encoded, with padding
@@ -2208,7 +2208,7 @@ HandleMarioWalksOffscreen:: ; ECD
 	ld b, 16
 .loop
 	ld a, [de]
-	ldi [hl], a
+	ld [hli], a
 	inc de
 	dec b
 	jr nz, .loop
@@ -2343,7 +2343,7 @@ PrintVictoryMessage:: ; F8A
 
 .newline
 	inc hl
-	ldi a, [hl]			; next byte determines how many tiles to skip
+	ld a, [hli]			; next byte determines how many tiles to skip
 	ld c, a
 	ld b, 0
 	ld a, [hl]
@@ -2394,7 +2394,7 @@ HandleFakeDaisyMorphing:: ; FFD
 	ld de, wOAMBuffer + 4 * $7	; Daisy sprite
 	ld b, 4 * 4					; 4 concomitant objects
 .loop
-	ldi a, [hl]
+	ld a, [hli]
 	ld [de], a
 	inc e
 	dec b
@@ -2556,7 +2556,7 @@ GameState_29:: ; 1116
 	ld hl, wOAMBuffer
 	ld b, 3 * 4			; 3 projectiles?
 .loop
-	ldi [hl], a
+	ld [hli], a
 	dec b
 	jr nz, .loop
 	call Call_1736
@@ -2631,7 +2631,7 @@ HandleDaisyKiss:: ; 11D0
 	ret nz
 	ld hl, wOAMBuffer + 4 * $C ; todo object macro?
 	dec [hl]				; Y pos
-	ldi a, [hl]
+	ld a, [hli]
 	cp a, SCRN_VY_B			; if heart gets high
 	jr c, .clearMessageAndOut
 	ldh a, [$FFFB]
@@ -2757,7 +2757,7 @@ HandleEnterAirplane:: ; 12A1
 	ld de, $C200		; mario
 	ld b, 6
 .loop
-	ldi a, [hl]
+	ld a, [hli]
 	ld [de], a
 	inc e
 	dec b
@@ -2780,7 +2780,7 @@ HandleAirplaneTakingOff:: ; 12C2
 	ld [hl], $FF		; make invisible. Why not do this before?
 	ld hl, wMarioPosY		; Y pos
 	dec [hl]				; take off
-	ldi a, [hl]
+	ld a, [hli]
 	cp a, $58
 	jr z, .cruisingAltitude
 	call .switchSpaceshipAnimation
@@ -2857,7 +2857,7 @@ HandleAirplaneMovingForward:: ; 12F1
 	ld b, $10
 	ld a, $2C
 .clearLoop
-	ldi [hl], a
+	ld [hli], a
 	dec b
 	jr nz, .clearLoop
 	ld a , 1
@@ -2881,7 +2881,7 @@ HandleAirplaneMovingForward:: ; 12F1
 	ld b, 5
 .loop
 	ld a, [de]
-	ldi [hl], a
+	ld [hli], a
 	inc de
 	dec b
 	jr nz, .loop
@@ -2956,7 +2956,7 @@ GameState_33:: ; 13C4
 	jr nc, .resetCloud
 	and a, $3F
 .resetCloud
-	ldd [hl], a
+	ld [hld], a
 	ld [hl], 0
 	pop hl
 .nextCloud
@@ -3088,14 +3088,14 @@ HandleAirplaneLeaving::
 	ld b, TheEndTextEnd- TheEndText
 .loop1
 	ld a, [de]
-	ldi [hl], a
+	ld [hli], a
 	inc de
 	dec b
 	jr nz, .loop1
 	ld b, $18
 	xor a
 .loop2
-	ldi [hl], a
+	ld [hli], a
 	dec b
 	jr nz, .loop2
 	ld a, $90
@@ -3264,7 +3264,7 @@ ClearOverlay ; 165E
 	ld bc, $0240
 .clearLoop
 	xor a
-	ldd [hl], a
+	ld [hld], a
 	dec bc
 	ld a, b
 	or c
@@ -3295,8 +3295,8 @@ HandleGoingRightIntoPipe:: ; 166C
 	ldh [hColumnIndex], a
 	call ClearOverlay	; A is zero after this
 	ld hl, $FFF4
-	ldi [hl], a
-	ldi [hl], a
+	ld [hli], a
+	ld [hli], a
 	ldh a, [$FFF7]		; FFF6 and FFF7 contain the coords where Mario will
 	ld d, a				; come out of the pipe
 	ldh a, [$FFF6]
@@ -3308,7 +3308,7 @@ HandleGoingRightIntoPipe:: ; 166C
 	ld [wC204], a
 	ld hl, wMarioPosY		; mario Y
 	ld a, d
-	ldi [hl], a
+	ld [hli], a
 	sub a, $12			; target position is 12 units above spawn? right on top
 	ldh [$FFF8], a		; of pipe?
 	ld a, e
@@ -3449,7 +3449,7 @@ MarioStandingOnPipe:: ; 1765
 	call Call_3F13			; called when hitting a bouncing block
 	pop de
 	ld hl, wMarioPosY			; Y pos
-	ldi a, [hl]
+	ld a, [hli]
 	add a, 16
 	ld [de], a
 	ldh a, [hScrollX]
@@ -3457,7 +3457,7 @@ MarioStandingOnPipe:: ; 1765
 	ldh a, [$FFAE]
 	sub b
 	add a, 8
-	ldi [hl], a
+	ld [hli], a
 	inc l
 	ld [hl], $80
 	ld a, STATE_GOING_DOWN_PIPE
@@ -3478,7 +3478,7 @@ Call_17BC:: ; 17BC
 	cp a, 1
 	ret z
 	ld hl, wMarioPosY			; Y pos
-	ldi a, [hl]
+	ld a, [hli]
 	add a, $0B
 	ldh [$FFAD], a
 	ldh a, [hScrollX]
@@ -3579,9 +3579,9 @@ Jmp_185D
 	ld [hl], a
 	xor a
 	ld hl, wJumpStatus		; jump status
-	ldi [hl], a				; C207 jump status
-	ldi [hl], a				; C208 
-	ldi [hl], a				; C209
+	ld [hli], a				; C207 jump status
+	ld [hli], a				; C208 
+	ld [hli], a				; C209
 	ld [hl], 1				; C20A 1 if mario on the ground
 	ld hl, wMarioMomentum			; C20C Momentum
 	ld a, [hl]
@@ -3672,7 +3672,7 @@ Jmp_185D
 	ld hl, wOAMBuffer + 4 * $B
 	ld a, [wMarioPosY]
 	sub a, $0B
-	ldi [hl], a				; Y pos of sprite on top of mario?
+	ld [hli], a				; Y pos of sprite on top of mario?
 	ldh [$FFC2], a			; enemy Y pos buffer?
 	ldh [$FFF1], a
 	ldh a, [hScrollX]
@@ -3680,7 +3680,7 @@ Jmp_185D
 	ldh a, [$FFAE]
 	ldh [$FFF2], a
 	sub b
-	ldi [hl], a
+	ld [hli], a
 	ldh [$FFC3], a			; enemy X pos buffer?
 	inc l
 	ld [hl], $00
@@ -3727,7 +3727,7 @@ Jmp_185D
 	ld hl, wOAMBuffer + 4 * $B
 	ld a, [wMarioPosY]			; y pos
 	sub a, $B
-	ldi [hl], a
+	ld [hli], a
 	ldh [$FFF1], a
 	ldh a, [hScrollX]
 	ld b, a
@@ -3735,7 +3735,7 @@ Jmp_185D
 	ld c, a
 	ldh [$FFF2], a
 	sub b
-	ldi [hl], a
+	ld [hli], a
 	inc l
 	ld [hl], $00
 	ldh [hFloatyX], a		; why
@@ -3770,7 +3770,7 @@ Jmp_185D
 	cp a, MARIO_ASCENDING		; ascending
 	ret nz
 	ld hl, wMarioPosY
-	ldi a, [hl]
+	ld a, [hli]
 	add a, -3				; look for collision on mario's head
 	ldh [$FFAD], a
 	ldh a, [hScrollX]
@@ -3967,7 +3967,7 @@ Call_1AAD:: ; 1AAD
 	ld de, $0702			; E = 2, check lower and upper side
 .checkSide
 	ld hl, wMarioPosY			; Y pos
-	ldi a, [hl] 			; The Y pos is about 10 px above Mario's feet
+	ld a, [hli] 			; The Y pos is about 10 px above Mario's feet
 	add d					; so look about 7px lower first iteration?
 	ldh [$FFAD], a
 	ld a, [wMarioFacingDir]			; dir facing
@@ -4040,7 +4040,7 @@ Call_1AAD:: ; 1AAD
 	ld a, $80
 	ld [wC204], a		; mario in control?
 	ld hl, wMarioPosX		; X pos
-	ldd a, [hl]
+	ld a, [hld]
 	add a, $18
 	ldh [$FFF8], a		; goal X?
 	ld a, [hl]			; Y pos
@@ -4285,7 +4285,7 @@ PrepareGameOver::	; 1C7C
 	xor a
 	ld b, 160
 .clearOAM
-	ldi [hl], a
+	ld [hli], a
 	dec b
 	jr nz, .clearOAM
 
@@ -4366,7 +4366,7 @@ MoveMario::
 	ret
 .notReversing
 	ld hl, wMarioMomentum		; momentum?
-	ldi a, [hl]
+	ld a, [hli]
 	cp a, $06			; max momentum
 	jr nz, .jmp_1D49
 	inc l				; C20E. 02 when walking, 04 when running
@@ -4631,13 +4631,13 @@ ClearSprites:: ; 1ED4
 	ld b, 13 * 4
 	xor a
 .clearLoop
-	ldi [hl], a
+	ld [hli], a
 	dec b
 	jr nz, .clearLoop
 	ld hl, wOAMBuffer
 	ld b, 11		; 2 objects and 3/4th of one ? Bug?
 .clearLoop2
-	ldi [hl], a
+	ld [hli], a
 	dec b
 	jr nz, .clearLoop2
 	ldh [$FFA9], a		; projectile status
@@ -4687,7 +4687,7 @@ Call_1F2D:: ; 1F2D
 	ld hl, $FFA9		; projectiles at A9, AA and AB?
 	ld de, wOAMBuffer + 1 ; objects 0, X position
 .superballLoop
-	ldi a, [hl]
+	ld a, [hli]
 	and a
 	jr nz, .moveSuperball
 .nextSuperball			; XXX more than one? how?
@@ -5088,7 +5088,7 @@ LoadNextColumn::	; 21B1
 	ld hl, $C0B0		; tilemap column cache todo
 	ld a, " "			; blank tile
 .clearLoop
-	ldi [hl], a
+	ld [hli], a
 	dec b
 	jr nz, .clearLoop
 	ldh a, [hColumnIndex]
@@ -5117,7 +5117,7 @@ LoadNextColumn::	; 21B1
 	ld e, a
 	ld d, $00
 	add hl, de			; hl ← [hl + screen * 2]
-	ldi a, [hl]
+	ld a, [hli]
 	cp a, $FF			; end of level?
 	jr z, .endOfLevel
 	ld e, a				; if not, this is a pointer to the screen?
@@ -5126,7 +5126,7 @@ LoadNextColumn::	; 21B1
 	pop hl
 
 .decodeLoop
-	ldi a, [hl]
+	ld a, [hli]
 	cp a, $FE
 	jr z, .endOfColumn	; $FE = end of column
 	ld de, $C0B0
@@ -5142,7 +5142,7 @@ LoadNextColumn::	; 21B1
 .skip
 	ld b, a
 .nextRow
-	ldi a, [hl]
+	ld a, [hli]
 	cp a, $FD			; FD means fill the rest with the next byte
 	jr z, .repeatNextTile
 	ld [de], a
@@ -5307,13 +5307,13 @@ CheckPipeForWarp:: ; 22A9
 	jr nz, .nextPipe
 	inc hl
 	ld de, $FFF4			; room to which the pipe leads
-	ldi a, [hl]
+	ld a, [hli]
 	ld [de], a
 	inc e					; FFF5, room where you exit
-	ldi a, [hl]
+	ld a, [hli]
 	ld [de], a
 	inc e					; FFF6 x position where you leave pipe
-	ldi a, [hl]
+	ld a, [hli]
 	ld [de], a
 	inc e					; FFF7 y position where you leave pipe
 	ld a, [hl]
@@ -5506,7 +5506,7 @@ AnimateBackground:: ; 2401
 	ld de, $95D1		; only this tile is animated
 	ld b, 8
 .loop
-	ldi a, [hl]
+	ld a, [hli]
 	ld [de], a
 	inc de
 	inc de				; 1BPP encoded?
@@ -5542,7 +5542,7 @@ InitEnemySlots:: ; 245C
 	ld d, $00
 	ld e, a
 	add hl, de
-	ldi a, [hl]
+	ld a, [hli]
 	ld e, a
 	ld a, [hl]			; load address from the table
 	ld d, a
@@ -5602,7 +5602,7 @@ SpawnEnemies:: ; 249B
 	rlca			; multiply by 8
 	add a, $10		; account for HUD
 	ldh [$FFC2], a	; enemy buffer?
-	ldi a, [hl]		; again Y position
+	ld a, [hli]		; again Y position
 	and a, $C0		; highest 2 bits, X position
 	swap a
 	add a, $D0		; TODO what's going on here
@@ -5632,7 +5632,7 @@ Call_24D6:: ; 24D6
 	ld e, a
 	ld hl, Data_3375
 	add hl, de
-	ldi a, [hl]
+	ld a, [hli]
 	ldh [$FFC7], a	; flags
 	jr Jmp_250B
 
@@ -5674,7 +5674,7 @@ Jmp_250B:
 	ld hl, Data_3375
 	add hl, de
 	inc hl				; not interested in the first byte?
-	ldi a, [hl]
+	ld a, [hli]
 	ldh [$FFCA], a		; mortality and dimensions
 	ld a, [hl]
 	ldh [$FFCC], a		; "health" above C0 means boss
@@ -5800,7 +5800,7 @@ DrawEnemies::; 2568
 	ld d, $00
 	ld e, a
 	add hl, de
-	ldi a, [hl]				; look the address up in the table
+	ld a, [hli]				; look the address up in the table
 	ld e, a
 	ld a, [hl]
 	ld d, a					; store in DE
@@ -5884,7 +5884,7 @@ Call_2648:: ; 2648
 	ld d, $00
 	ld e, a
 	add hl, de
-	ldi a, [hl]
+	ld a, [hli]
 	ld e, a
 	ld a, [hl]
 	ld d, a
@@ -6113,7 +6113,7 @@ Call_2648:: ; 2648
 	ld d, $00
 	ld e, a
 	add hl, de
-	ldi a, [hl]
+	ld a, [hli]
 	ld e, a
 	ld a, [hl]
 	ld d, a
@@ -6998,9 +6998,9 @@ InitEnemy:: ; 2CBB
 	ld e, a
 	ld hl, Data_3375
 	add hl, de
-	ldi a, [hl]
+	ld a, [hli]
 	ld b, a
-	ldi a, [hl]
+	ld a, [hli]
 	ld d, a
 	ld a, [hl]			; Store the data in B, D and A
 	pop hl
@@ -7033,7 +7033,7 @@ CopyEnemySlotToBuffer:: ; 2CE5
 	ld de, $FFC0
 	ld b, $0D			; bytes D, E, F are unused?
 .loop
-	ldi a, [hl]
+	ld a, [hli]
 	ld [de], a
 	inc de
 	dec b
@@ -7050,7 +7050,7 @@ CopyBufferToEnemySlot:: ; 2CF7
 	ld b, $0D
 .loop
 	ld a, [de]
-	ldi [hl], a
+	ld [hli], a
 	inc de
 	dec b
 	jr nz, .loop
@@ -7392,60 +7392,60 @@ Call_3D1A; 3D1A
 	ld b, $20
 	xor a
 .jmp_3D20
-	ldi [hl], a
+	ld [hli], a
 	dec b
 	jr nz, .jmp_3D20
 	ld hl, wGameTimer
 	ld a, $28		; 40 frames per time unit
-	ldi [hl], a		; DA00 - Time hundredths	
+	ld [hli], a		; DA00 - Time hundredths	
 	xor a
-	ldi [hl], a		; DA01 - Time ones and tens
+	ld [hli], a		; DA01 - Time ones and tens
 	ld a, 4
-	ldi [hl], a		; DA02 - Time hundreds
+	ld [hli], a		; DA02 - Time hundreds
 	call DisplayTimer.printTimer	; TODO
 	ld a, $20		; Some sort of timers? For "dynamic" sprites?
-	ldi [hl], a		; DA03
-	ldi [hl], a		; DA04
-	ldi [hl], a		; DA05
-	ldi [hl], a		; DA06
+	ld [hli], a		; DA03
+	ld [hli], a		; DA04
+	ld [hli], a		; DA05
+	ld [hli], a		; DA06
 	ld a, $F6		; One for each "timer"?
-	ldi [hl], a		; DA07
-	ldi [hl], a		; DA08
-	ldi [hl], a		; DA09
-	ldi [hl], a		; DA0A
+	ld [hli], a		; DA07
+	ld [hli], a		; DA08
+	ld [hli], a		; DA09
+	ld [hli], a		; DA0A
 	ld a, $30		; Cycles between the three "timers"
-	ldi [hl], a		; DA0B
+	ld [hli], a		; DA0B
 	xor a
 	ld b, 9
 .loop
-	ldi [hl], a		; DA0C - DA14
+	ld [hli], a		; DA0C - DA14
 	dec b
 	jr nz, .loop
 	ld a, 2
-	ldi [hl], a		; DA15 - Lives
+	ld [hli], a		; DA15 - Lives
 	dec a
-	ldi [hl], a		; DA16 - TODO
+	ld [hli], a		; DA16 - TODO
 	xor a
-	ldi [hl], a		; DA17 - wPrizeAwarded
-	ldi [hl], a		; DA18
-	ldi [hl], a		; DA19
-	ldi [hl], a		; DA1A
+	ld [hli], a		; DA17 - wPrizeAwarded
+	ld [hli], a		; DA18
+	ld [hli], a		; DA19
+	ld [hli], a		; DA1A
 	ld a, $40
-	ldi [hl], a		; DA1B - wBonusGameEndTimer
+	ld [hli], a		; DA1B - wBonusGameEndTimer
 	xor a
-	ldi [hl], a		; DA1C
-	ldi [hl], a		; DA1D - wGameTimerExpiringFlag
-	ldi [hl], a		; DA1E - wBonusGameGrowAnimationFlag
+	ld [hli], a		; DA1C
+	ld [hli], a		; DA1D - wGameTimerExpiringFlag
+	ld [hli], a		; DA1E - wBonusGameGrowAnimationFlag
 	ld a, $40
-	ldi [hl], a		; DA1F - wBonusGameAnimationTimer
+	ld [hli], a		; DA1F - wBonusGameAnimationTimer
 	xor a
 	ld b, $08
 .loop2
-	ldi [hl], a		; DA20 - DA27 - ... to here
+	ld [hli], a		; DA20 - DA27 - ... to here
 	dec b
 	jr nz, .loop2
 	ld a, $04
-	ldi [hl], a		; DA28
+	ld [hli], a		; DA28
 	ld a, $11
 	ld [hl], a		; DA29 - Changes during the bonus game..
 	ret
@@ -7491,7 +7491,7 @@ HandleGotoBonusGame:: ; 3D97
 	ld hl, wOAMBuffer
 	ld b, 160
 .oamloop			; Remove all objects
-	ldi [hl], a
+	ld [hli], a
 	dec b
 	jr nz, .oamloop
 	ld hl, vBGMap0
@@ -7499,7 +7499,7 @@ HandleGotoBonusGame:: ; 3D97
 	ld c, 3
 	ld a, " "
 .tilemapLoop		; Clear the background
-	ldi [hl], a
+	ld [hli], a
 	dec b
 	jr nz, .tilemapLoop
 	ld b, $FF
@@ -7526,11 +7526,11 @@ HandleEnterBonusGame:: ; 3DD7
 	ldh [rLCDC], a
 	ld hl, vBGMap0
 	ld a, $F5		; Top Left corner
-	ldi [hl], a
+	ld [hli], a
 	ld b, SCRN_Y_B	; screen height
 	ld a, $9F
 .topLoop			; Top border
-	ldi [hl], a
+	ld [hli], a
 	dec b
 	jr nz, .topLoop
 	ld a, $FC
@@ -7553,38 +7553,38 @@ HandleEnterBonusGame:: ; 3DD7
 	jr nz, .sideLoop
 	ld hl, vBGMap0 + 17 * SCRN_VX_B ; $9A20
 	ld a, $FF
-	ldi [hl], a		; Bottom Left corner
+	ld [hli], a		; Bottom Left corner
 	ld b, $12
 	ld a, $9F
 .bottomLoop			; Bottom border
-	ldi [hl], a
+	ld [hli], a
 	dec b
 	jr nz, .bottomLoop
 	ld a, $E9
 	ld [hl], a		; Bottom Right corner
 	ld hl, vBGMap0 + 2 * SCRN_VX_B + 5 ; $9845
 	ld a, "b"
-	ldi [hl], a
+	ld [hli], a
 	ld a, "o"
-	ldi [hl], a
+	ld [hli], a
 	dec a			; n
-	ldi [hl], a
+	ld [hli], a
 	ld a, "u"
-	ldi [hl], a
+	ld [hli], a
 	ld a, "s"
-	ldi [hl], a
+	ld [hli], a
 	inc l			; space
 	ld a, "g"
-	ldi [hl], a
+	ld [hli], a
 	ld a, "a"
-	ldi [hl], a
+	ld [hli], a
 	ld a, "m"
-	ldi [hl], a
+	ld [hli], a
 	ld a, "e"
 	ld [hl], a		; bonus game
 	ld hl, vBGMap0 + 4 * SCRN_VX_B + 7 ; $9887
 	ld a, $E4		; mario head
-	ldi [hl], a
+	ld [hli], a
 	inc l
 	ld a, "*"
 	ld [hl], a
@@ -7592,45 +7592,45 @@ HandleEnterBonusGame:: ; 3DD7
 	ld a, $2D
 	ld b, SCRN_Y_B		; screen height?
 .topFloor
-	ldi [hl], a
+	ld [hli], a
 	dec b
 	jr nz, .topFloor
 	ld l, $D1
 	ld a, "*"
-	ldi [hl], a
+	ld [hli], a
 	ld l, $41
 	inc h
 	ld a, $2D
 	ld b, SCRN_Y_B		; screen height?
 .highMidFloor
-	ldi [hl], a
+	ld [hli], a
 	dec b
 	jr nz, .highMidFloor
 	ld l, $31
 	ld a, "*"
-	ldi [hl], a
+	ld [hli], a
 	ld l, $A1
 	ld a, $2D
 	ld b, SCRN_Y_B		; screen height?
 .lowMidFloor
-	ldi [hl], a
+	ld [hli], a
 	dec b
 	jr nz, .lowMidFloor
 	ld l, $91
 	ld a, "*"
-	ldi [hl], a
+	ld [hli], a
 	ld l, $01
 	inc h
 	ld a, $2D
 	ld b, SCRN_Y_B		; screen height?
 .bottomFloor
-	ldi [hl], a
+	ld [hli], a
 	dec b
 	jr nz, .bottomFloor
 	ld l, $F1
 	dec h
 	ld a, "*"
-	ldi [hl], a
+	ld [hli], a
 .prizePermutations					; $E5 is a flower
 	db 0, 1, 2, $E5, 3, 1, 2, $E5	; These happen to be valid opcodes
 
@@ -7793,7 +7793,7 @@ DisplayScore:: ; 3F39
 	jr nz, .printFirstDigit
 	ld a, " "			; If not, start with spaces, not leading zeroes
 .printFirstDigit
-	ldi [hl], a			; Place the digit or space in VRAM
+	ld [hli], a			; Place the digit or space in VRAM
 	ld a, b				; Now the lesser significant digit
 	and a, $0F
 	jr nz, .startNumber2; If non-zero, number has started (or already is)
@@ -7807,7 +7807,7 @@ DisplayScore:: ; 3F39
 	jr z, .printSecondDigit
 	ld a, " "			; Otherwise, print another space
 .printSecondDigit
-	ldi [hl], a			; Put the second digit in VRAM
+	ld [hli], a			; Put the second digit in VRAM
 	dec e				; Go to the next pair of digits in memory
 	dec c				; Which is less significant
 	jr nz, .printDigitPair
