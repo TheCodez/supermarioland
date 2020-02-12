@@ -218,6 +218,7 @@ wLadderTiles:: ; DA23
 	ds 4
 
 ds $DFE0 - $DA27
+
 wSquareSFX:: ; DFE0
 	ds 1
 

@@ -376,13 +376,13 @@ _Call_7FF0:: ; 6662
 	push bc
 	push de
 	push hl
-	ld a, $03		; Cartridge doesn't have RAM, and it's not even the correct
+	ld a, 3		; Cartridge doesn't have RAM, and it's not even the correct
 	ld [$00FF], a	; way to enable it. Bug
 	ei				; Is this smart
 	ldh a, [hPauseUnpauseMusic]
-	cp a, $01		; 1 means pause music
+	cp a, 1		; 1 means pause music
 	jr z, .pauseMusic
-	cp a, $02		; 2 means unpause music
+	cp a, 2		; 2 means unpause music
 	jr z, .unpauseMusic
 	ldh a, [hPauseTuneTimer]
 	and a
@@ -393,8 +393,8 @@ _Call_7FF0:: ; 6662
 	jr z, .jmp_6688
 	xor a
 	ld [$FF00+c], a
-	ld a, $08		; 1UP sound
-	ld [$DFE0], a
+	ld a, SFX_1UP		; 1UP sound
+	ld [wSquareSFX], a
 .jmp_6688
 	call PlaySquareSFX
 	call PlayNoiseSFX	; play noise sfx
@@ -404,12 +404,12 @@ _Call_7FF0:: ; 6662
 	call PanStereo
 .out
 	xor a
-	ld [$DFE0], a
-	ld [$DFE8], a
+	ld [wSquareSFX], a
+	ld [wActiveMusic], a
 	ld [$DFF0], a
-	ld [$DFF8], a
+	ld [wNoiseSFX], a
 	ldh [hPauseUnpauseMusic], a
-	ld a, $07
+	ld a, 7
 	ld [$00FF], a	; Bug continued
 	pop hl
 	pop de
@@ -1053,7 +1053,7 @@ _InitSound:: ; 6A33
 	ret
 
 PlaySquareSFX:: ; 6A6A
-	ld de, $DFE0			; non zero to start sfx
+	ld de, wSquareSFX			; non zero to start sfx
 	ld a, [de]
 	and a
 	jr z, .continue			; if zero, play the current sound
@@ -1078,7 +1078,7 @@ PlaySquareSFX:: ; 6A6A
 	ret
 
 PlayNoiseSFX:: ; 6A8E
-	ld de, $DFF8
+	ld de, wNoiseSFX
 	ld a, [de]
 	and a
 	jr z, .continue
@@ -1106,7 +1106,7 @@ _Unreachable ; 6AB2
 	jp _InitSound
 
 StartMusic:: ; 6AB5
-	ld hl, $DFE8
+	ld hl, wActiveMusic
 	ldi a, [hl]
 	and a
 	ret z

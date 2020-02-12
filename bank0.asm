@@ -1,5 +1,6 @@
 INCLUDE "charmap.asm"
 INCLUDE "constants.asm"
+INCLUDE "sound_constants.asm"
 INCLUDE "gbhw.asm"
 INCLUDE "vram.asm"
 INCLUDE "wram.asm"
@@ -1020,7 +1021,7 @@ StartLevelMusic::
 	ret
 
 .underground
-	ld a, 4				; underground music
+	ld a, MUSIC_UNDERGROUND	; underground music
 	ld [wActiveMusic], a
 	ret
 
@@ -1226,7 +1227,7 @@ EntityCollision:: ; 84E
 	or a, $04			; flying
 	ld [hl], a
 .enemyKilled
-	ld a, SOUND_STOMP
+	ld a, SFX_STOMP
 	ld [wSquareSFX], a		; stomp sound
 	ld a, [wMarioPosX]		; X pos
 	add a, -4
@@ -1348,14 +1349,14 @@ EntityCollision:: ; 84E
 .pickupStar
 	ld a, $F8
 	ld [wInvincibilityTimer], a
-	ld a, $0C
+	ld a, MUSIC_STAR
 	ld [wActiveMusic], a				; Galop Infernal
 	jr .spawn1000ScoreFloaty
 
 .pickup1UP
 	ld a, $FF
 	ldh [hFloatyControl], a		; 1UP floaty
-	ld a, SOUND_ONE_UP
+	ld a, SFX_1UP
 	ld [wSquareSFX], a				; life up
 	ld a, 1
 	ld [wLivesEarnedLost], a
@@ -1381,7 +1382,7 @@ KillMario:: ; 9F1
 	xor a
 	ldh [hSuperballMario], a; superball capability
 	ldh [rTMA], a
-	ld a, 2
+	ld a, MUSIC_DEATH
 	ld [wActiveMusic], a			; sound effect
 	ld a, SPRITE_HIDDEN             ; make mario invisible
 	ld [wMarioVisible], a
@@ -2187,7 +2188,7 @@ HandleMarioWalksOffscreen:: ; ECD
 	ldh [$FFA3], a		; switches between 0 and 8..
 	ld a, $A1
 	ldh [hTimer], a
-	ld a, $0F
+	ld a, MUSIC_OH_DAISY
 	ld [wActiveMusic], a		; Daisy music
 	ld hl, hGameState
 	inc [hl]			; 21 → 22
@@ -2291,7 +2292,7 @@ HandleFakeDaisySpeaking:: ; F6A
 	ldh [hTimer], a
 	ld a, 8
 	ldh [$FFFB], a	; timer for morph
-	ld a, $12
+	ld a, MUSIC_FAKE_DAISY
 	ld [wActiveMusic], a	; music
 	ret
 
@@ -2462,7 +2463,7 @@ HandleTatangaDying::	; 1099
 	ldh a, [$FFA7]
 	and a
 	jr nz, .screenShake
-	ld a, SOUND_EXPLOSION
+	ld a, SFX_EXPLOSION
 	ld [wNoiseSFX], a		; explosion sound effect
 	ld a, $20			; one explosion every 32 frames, about half a second
 	ldh [$FFA7], a
@@ -2563,7 +2564,7 @@ GameState_29:: ; 1116
 	ldh [hTextCursorHi], a
 	ld a, $A5
 	ldh [hTextCursorLo], a
-	ld a, $0F
+	ld a, MUSIC_OH_DAISY
 	ld [wActiveMusic], a
 	ld a, %11000011
 	ldh [rLCDC], a
@@ -2814,7 +2815,7 @@ HandleAirplaneMovingForward:: ; 12F1
 	ld a, [$DFE9]		; wait until the song is over?
 	and a
 	ret nz
-	ld a, $11
+	ld a, MUSIC_VICTORY
 	ld [wActiveMusic], a
 	ret
 
@@ -3464,7 +3465,7 @@ MarioStandingOnPipe:: ; 1765
 	ld a, [wInvincibilityTimer]
 	and a
 	jr nz, .skip			; Keep invincibility music going
-	ld a, 4
+	ld a, MUSIC_UNDERGROUND
 	ld [wActiveMusic], a			; underground music
 .skip
 	call ClearSprites			; clears some sprites
@@ -3564,7 +3565,7 @@ Call_17BC:: ; 17BC
 	ld [hl], d
 	inc l
 	ld [hl], e
-	ld a, SOUND_COIN
+	ld a, SFX_COIN
 	ld [wSquareSFX], a			; coin sound
 	jr .jmp_1801
 
@@ -3625,7 +3626,7 @@ Jmp_185D
 	ldh a, [$FFEE]
 	and a
 	ret nz
-	ld a, SOUND_COIN
+	ld a, SFX_COIN
 	ld [wSquareSFX], a			; coin sound effect
 	ld a, [wMarioPosY]			; Y pos
 	sub a, 16
@@ -3645,7 +3646,7 @@ Jmp_185D
 	ldh [hBoundingBoxTop], a
 	ld a, $80
 	ld [wOAMBuffer + 4 * $B + 2], a
-	ld a, SOUND_BUMP
+	ld a, SFX_BUMP
 	ld [wSquareSFX], a			; bump sound effect
 	push hl
 	pop de
@@ -3804,7 +3805,7 @@ Jmp_185D
 	jp z, .jmp_1888
 	ld a, MARIO_DESCENDING
 	ld [wJumpStatus], a
-	ld a, SOUND_BUMP
+	ld a, SFX_BUMP
 	ld [wSquareSFX], a			; bump
 	ret
 
@@ -3871,7 +3872,7 @@ Jmp_185D
 	ld [hl], $0B
 	ldh a, [hScrollX]
 	ldh [$FFF3], a
-	ld a, SOUND_BLOCK_BREAKING
+	ld a, SFX_BRICKSHATTER
 	ld [wNoiseSFX], a			; breaking block sound effect
 	ld de, $0050
 	call AddScore
@@ -3891,7 +3892,7 @@ Jmp_185D
 	ld [hl], d
 	inc l
 	ld [hl], e
-	ld a, SOUND_COIN
+	ld a, SFX_COIN
 	ld [wSquareSFX], a
 	ret
 
@@ -4025,7 +4026,7 @@ Call_1AAD:: ; 1AAD
 	ld [hl], d
 	inc l
 	ld [hl], e				; store block address in FFEF-FFF0
-	ld a, SOUND_COIN
+	ld a, SFX_COIN
 	ld [wSquareSFX], a			; coin sound effect
 	xor a
 	ret
@@ -4076,7 +4077,7 @@ Jmp_1B45:: ; 1B45
 	ld a, [$D007]
 	and a
 	jr nz, .jmp_1B79
-	ld a, $01
+	ld a, MUSIC_LEVEL_COMPLETE
 	ld [wActiveMusic], a		; start victory music
 	ld a, $F0
 	ldh [hTimer], a				; countdown
@@ -4140,7 +4141,7 @@ BlockCollision:: ; 1B86
 	cp a, $F4			; coin "$"
 	ret nz
 	ld [hl], " "		; remove it
-	ld a, SOUND_COIN
+	ld a, SFX_COIN
 	ld [wSquareSFX], a		; todo sound effect
 	ld a, h
 	ld [$FFB0], a
@@ -4265,7 +4266,7 @@ PrepareGameOver::	; 1C7C
 	inc de
 	dec b
 	jr nz, .loop
-	ld a, $10
+	ld a, MUSIC_GAME_OVER
 	ld [wActiveMusic], a
 	ldh a, [hWorldAndLevel]			; level on which we were? BCD encoded
 	ld [wContinueWorldAndLevel], a
@@ -4827,7 +4828,7 @@ FindNeighboringTile::	; gets called in autoscroll from 514F?
 	ld [hl], d
 	inc l
 	ld [hl], e
-	ld a, SOUND_COIN
+	ld a, SFX_COIN
 	ld [wSquareSFX], a		; coin sound effect
 .checkForBreakableBlock
 	cp a, $82			; breakable block
@@ -4923,7 +4924,7 @@ Call_200A::
 	pop af
 	cp a, $FF
 	jr nz, .jmp_2083
-	ld a, SOUND_STOMP
+	ld a, SFX_STOMP
 	ld [wSquareSFX], a			; enemy dieing sound effect
 	ldh a, [$FF9E]
 	ldh [hFloatyControl], a
@@ -5679,7 +5680,7 @@ Jmp_250B:
 	ldh [$FFCC], a		; "health" above C0 means boss
 	cp a, $C0
 	jr c, .findEmptySlot
-	ld a, $0B
+	ld a, MUSIC_BOSS
 	ld [wActiveMusic], a		; boss music!
 .findEmptySlot
 	ld de, $0010
