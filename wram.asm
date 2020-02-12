@@ -73,7 +73,7 @@ wMarioPosY::  ; C201
 wMarioPosX::  ; C202
 	ds 1
 
-wAnimIndex:: ; C203
+wMarioAnimIndex:: ; C203
 	ds 1
 
 wC204:: ; C204
@@ -101,7 +101,7 @@ wC209:: ; C209
 wMarioOnGround:: ; C20A
 	ds 1
 
-wC20B:: ; C20B
+wMarioAnimFrameCounter:: ; C20B
 	ds 1
 
 wMarioMomentum:: ; C20C
@@ -110,7 +110,7 @@ wMarioMomentum:: ; C20C
 wMarioWalkingDir:: ; C20D
 	ds 1
 
-wC20E:: ; C20E
+wMarioRunning:: ; C20E
 	ds 1
 
 wC20F:: ; C20F

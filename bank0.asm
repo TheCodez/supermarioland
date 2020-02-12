@@ -980,10 +980,10 @@ ResetToCheckpoint::
 .autoscroll
 	ld a, $0D
 	ldh [hGameState], a		; autoscroll
-	ld a, [wAnimIndex]			; animation index
+	ld a, [wMarioAnimIndex]			; animation index
 	and a, $F0
 	or c
-	ld [wAnimIndex], a
+	ld [wMarioAnimIndex], a
 .out
 	call InitEnemySlots
 	ei
@@ -1070,7 +1070,7 @@ DrawInitialScreen::
 	and a
 	jr z, .drawLevel	; jump if small mario
 	ld a, $10
-	ld [wAnimIndex], a		; animation index. upper nibble is 1 of large mario
+	ld [wMarioAnimIndex], a		; animation index. upper nibble is 1 of large mario
 .drawLevel					; does weird things in autoscroll
 	ld hl, hColumnIndex
 	xor a
@@ -1140,7 +1140,7 @@ EntityCollision:: ; 84E
 	ldh a, [hSuperStatus]
 	cp a, 2
 	jr nz, .jmp_88E
-	ld a, [wAnimIndex]
+	ld a, [wMarioAnimIndex]
 	cp a, $18
 	jr z, .jmp_88E
 	ld a, -2
@@ -1215,7 +1215,7 @@ EntityCollision:: ; 84E
 	ld [hl], $D			; C208
 	dec l
 	ld [hl], 1			; wJumpStatus
-	ld hl, wAnimIndex		; animation
+	ld hl, wMarioAnimIndex		; animation
 	ld a, [hl]
 	and a, $F0
 	or a, $04			; flying
@@ -2164,7 +2164,7 @@ MarioStartsWalkingOffscreen:: ; EA9
 .walkRight
 	ld a, $10
 	ldh [hJoyHeld], a	; simulate pressing Right button todo
-	ld a, [wAnimIndex]		; animation index
+	ld a, [wMarioAnimIndex]		; animation index
 	and a, $0F
 	cp a, $0A			; animations >= $0A are sub or airplane
 	call c, Call_17BC
@@ -2250,9 +2250,9 @@ HandleWalkToFakeDaisy:: ; F33
 	ld a, [wMarioPosX]
 	cp a, 76			; almost middle of screen
 	ret c
-	ld a, [wAnimIndex]
+	ld a, [wMarioAnimIndex]
 	and a, $F0
-	ld [wAnimIndex], a		; mario standing still
+	ld [wMarioAnimIndex], a		; mario standing still
 	ld a, [$FFE0]			; top of gate?
 	sub a, $40				; two tiles up
 	add a, 4				; four to the right
@@ -2756,7 +2756,7 @@ HandleEnterAirplane:: ; 12A1
 	inc e
 	dec b
 	jr nz, .loop		; todo macro?
-	ld hl, wAnimIndex		; animation
+	ld hl, wMarioAnimIndex		; animation
 	ld [hl], $26
 	ld hl, $C241		; previous spaceship
 	ld [hl], $F0		; out of sight, out of mind
@@ -3275,7 +3275,7 @@ HandleGoingRightIntoPipe:: ; 166C
 	cp [hl]
 	jr c, .toOverworld		; warp out? todo
 	inc [hl]
-	ld hl, $C20B			; how many frames a direction is held. For animation?
+	ld hl, wMarioAnimFrameCounter			; how many frames a direction is held. For animation?
 	inc [hl]
 	call Call_16F5			; animate mario?
 	ret
@@ -3356,19 +3356,19 @@ Call_16F5:: ; 16F5 Animate mario?
 	ld a, [wMarioOnGround]			; 1 if mario on the ground
 	and a
 	jr z, .jmp_172C
-	ld a, [wAnimIndex]			; animation index
+	ld a, [wMarioAnimIndex]			; animation index
 	and a, $0F				; low nibble
 	cp a, $0A
 	jr nc, .jmp_172C		; JR if animation index is >= 0xA, which is sub and airplane stuff
-	ld hl, $C20B			; animation frame counter?
-	ld a, [$C20E]			; 2 when walking, 4 when stuff
+	ld hl, wMarioAnimFrameCounter			; animation frame counter?
+	ld a, [wMarioRunning]			; 2 when walking, 4 when stuff
 	cp a, $23
 	ld a, [hl]
 	jr z, .jmp_1730			; wait, can this ever happen... Bug?
 	and a, 3
 	jr nz, .jmp_172C		; any 3 movement frames, change animation
 .jmp_1716
-	ld hl, wAnimIndex
+	ld hl, wMarioAnimIndex
 	ld a, [hl]
 	cp a, $18				; crouching Super Mario
 	jr z, .jmp_172C
@@ -3488,7 +3488,7 @@ Call_17BC:: ; 17BC
 	jp z, MarioStandingOnBossSwitch			; can this be a JR?
 	cp a, $60				; solid tiles
 	jr nc, .jmp_181E		; why is this a JP? Bug?
-	ld a, [$C20E]			; 02 walking, 04 running
+	ld a, [wMarioRunning]			; 02 walking, 04 running
 	ld b, 4
 	cp a, 4
 	jr nz, .jmp_17F5
@@ -3514,11 +3514,11 @@ Call_17BC:: ; 17BC
 	inc [hl]				; falling without having jumped
 	ld hl, wMarioOnGround
 	ld [hl], 0				; Mario not on ground
-	ld a, [$C20E]
+	ld a, [wMarioRunning]
 	and a
 	ret nz
-	ld a, 2
-	ld [$C20E], a
+	ld a, MARIO_WALKING
+	ld [wMarioRunning], a
 	ret
 
 .jmp_181E
@@ -3786,20 +3786,20 @@ Jmp_185D
 	cp a, $60
 	ret c					; non solid block
 .jmp_19BF
-	call Call_1A6B			; platform-like blocks
-	and a
+	call IsSolidBlock			; platform-like blocks
+	and a					; zero if solid
 	ret z
 	cp a, $82				; breakable block
 	jr z, .hitBreakableBlock
-	cp a, $F4				; coin
+	cp a, $F4						; coin
 	jp z, .jmp_1A57
 	cp a, BLOCK_COIN				; mystery block
 	jr z, .hitMysteryBlock
 	cp a, BLOCK_BREAKABLE
 	jp z, .jmp_1888
-	ld a, 2
+	ld a, MARIO_DESCENDING
 	ld [wJumpStatus], a
-	ld a, 7
+	ld a, SOUND_BUMP
 	ld [wSquareSFX], a			; bump
 	ret
 
@@ -3886,13 +3886,13 @@ Jmp_185D
 	ld [hl], d
 	inc l
 	ld [hl], e
-	ld a, 5
+	ld a, SOUND_COIN
 	ld [wSquareSFX], a
 	ret
 
 ; Clears A if it's a solid block that does not have side or top collision,
 ; but can be stood upon, like a platform. Semi-solid platform
-Call_1A6B:: ; 1A6B
+IsSolidBlock:: ; 1A6B
 	push hl
 	push af
 	ld b, a
@@ -3903,7 +3903,7 @@ Call_1A6B:: ; 1A6B
 	sla a					; times two
 	ld e, a
 	ld d, 0
-	ld hl, .data_1A93		; lookup in table
+	ld hl, BlockTable		; lookup in table
 	add hl, de
 	ld e, [hl]
 	inc hl
@@ -3928,7 +3928,7 @@ Call_1A6B:: ; 1A6B
 	xor a
 	ret
 
-.data_1A93
+BlockTable::
 	dw .TreeTiles
 	dw .GrassTiles
 	dw .data_1AA7
@@ -3949,13 +3949,13 @@ Call_1A6B:: ; 1A6B
 ; detects collision with environment, but only left and right?
 Call_1AAD:: ; 1AAD
 	ldh a, [hGameState]
-	cp a, $0E
+	cp a, STATE_LOAD_MENU
 	jr nc, .noCollision		; jump if not in "normal gameplay"
 	ld de, $0701
 	ldh a, [hSuperStatus]
 	cp a, 2					; super mario
 	jr nz, .checkSide
-	ld a, [wAnimIndex]		; animation index
+	ld a, [wMarioAnimIndex]		; animation index
 	cp a, $18				; crouching mario
 	jr z, .checkSide
 	ld de, $0702			; E = 2, check lower and upper side
@@ -3979,7 +3979,7 @@ Call_1AAD:: ; 1AAD
 	ldh [$FFAE], a			; used in block detection
 	push de
 	call LookupTile
-	call Call_1A6B			; detect if the block is passthrougable from the side
+	call IsSolidBlock			; detect if the block is passthrougable from the side
 	pop de
 	and a
 	jr z, .checkNextTile
@@ -3992,10 +3992,10 @@ Call_1AAD:: ; 1AAD
 	cp a, $F2				; downward fist Genkotsu
 	jr z, Jmp_1B45			; ...makes Mario win? Bug? Deleted content?
 .stopMario
-	ld hl, $C20B			; animation frame counter
+	ld hl, wMarioAnimFrameCounter			; animation frame counter
 	inc [hl]
-	ld a, 2
-	ld [$C20E], a			; 02 walking, 04 runnning
+	ld a, MARIO_WALKING
+	ld [wMarioRunning], a			; 02 walking, 04 runnning
 	ld a, $FF
 	ret
 
@@ -4055,16 +4055,16 @@ Jmp_1B45:: ; 1B45
 	xor a
 	ldh [hSuperStatus], a
 .jmp_1B52
-	ld a, [wAnimIndex]			; animation index
+	ld a, [wMarioAnimIndex]			; animation index
 	and b
-	ld [wAnimIndex], a
+	ld [wMarioAnimIndex], a
 	ld b, a
 	and a, $0F
 	cp a, $0A
 	jr nc, .jmp_1B66			; jmp if animation index >= 0A, which is airplane, sub stuff
 	ld a, b
 	and a, $F0
-	ld [wAnimIndex], a
+	ld [wMarioAnimIndex], a
 .jmp_1B66
 	ld a, STATE_7					; end of level with music?
 	ldh [hGameState], a
@@ -4382,8 +4382,8 @@ MoveMario::
 	ld a, [hl]
 	and a
 	jr z, .jmp_1D6B
-	xor a				; from here on we have a non-zero speed, and the movement buttons are not pressed. I think
-	ld [$C20E], a		; 02 walking 04 running
+	xor a						; from here on we have a non-zero speed, and the movement buttons are not pressed. I think
+	ld [wMarioRunning], a		; 02 walking 04 running
 	dec [hl]
 	inc l				; C20B
 	ld a, [hl]
@@ -4397,15 +4397,15 @@ MoveMario::
 .jmp_1D71
 	ld a, [wJumpStatus]		; jump status
 	and a
-	ret nz				; no animation in the air
-	ld hl, wAnimIndex		; animation index
+	ret nz						; no animation in the air
+	ld hl, wMarioAnimIndex		; animation index
 	ld a, [hl]
 	and a, $F0			; upper nibble is super status
 	ld [hl], a			; stand still animation
 	ld a, 1
-	ld [$C20B], a		; animation frame counter
+	ld [wMarioAnimFrameCounter], a		; animation frame counter
 	xor a
-	ld [$C20E], a		; walking nor runnning
+	ld [wMarioRunning], a		; walking nor runnning
 	ret
 .downButton
 	push af
@@ -4416,7 +4416,7 @@ MoveMario::
 	and a
 	jr nz, .skipCrouch	; cannot crouch when jumping
 	ld a, $18
-	ld [wAnimIndex], a		; crouching mario, hidden daisy
+	ld [wMarioAnimIndex], a		; crouching mario, hidden daisy
 	ldh a, [hJoyHeld]
 	and a, D_LEFT | D_RIGHT	; test bits left and right button
 	jr nz, .jmp_1DA6
@@ -4449,13 +4449,13 @@ MoveMario::
 	ldh a, [hJoyHeld]
 	bit 4, a			; right
 	jr z, .jmp_1DE4
-	ld a, [wAnimIndex]		; animation index
+	ld a, [wMarioAnimIndex]		; animation index
 	cp a, $18			; crouching
 	jr nz, .jmp_1DD8
-	ld a, [wAnimIndex]		; why
+	ld a, [wMarioAnimIndex]		; why
 	and a, $F0
-	or a, $01
-	ld [wAnimIndex], a		; first animation?
+	or a, 1
+	ld [wMarioAnimIndex], a		; first animation?
 .jmp_1DD8
 	ld hl, wMarioMomentum		; ...
 	ld a, [hl]
@@ -4497,7 +4497,7 @@ MoveMario::
 	dec c
 	jr nz, .shiftProjectiles
 .jmp_1E1C
-	ld hl, $C20B		; frames a dir is held?
+	ld hl, wMarioAnimFrameCounter		; frames a dir is held?
 	inc [hl]
 	ret
 
@@ -4531,17 +4531,17 @@ MoveMario::
 	ld a, [wJumpStatus]		; jump status
 	and a
 	ret nz					; nz if in air
-	ld hl, wAnimIndex		; animation
+	ld hl, wMarioAnimIndex		; animation
 	ld a, [hl]
 	and a, $F0
 	or a, 5				; reversing animation
 	ld [hl], a
-	ld a, $01
-	ld [$C20B], a		; restart animation counter
+	ld a, 1
+	ld [wMarioAnimFrameCounter], a		; restart animation counter
 	ret
 .jmp_1E61
 	ld hl, wMarioFacingDir		; dir facing
-	ld [hl], $20		; facing left
+	ld [hl], $20		; facing left (x flip)
 	call Call_1AAD
 	and a
 	ret nz
@@ -4553,13 +4553,13 @@ MoveMario::
 	ldh a, [hJoyHeld]
 	bit D_LEFT_BIT, a		; left button
 	jr z, .jmp_1E97
-	ld a, [wAnimIndex]
+	ld a, [wMarioAnimIndex]
 	cp a, $18			; crouching
 	jr nz, .jmp_1E8B
-	ld a, [wAnimIndex]
+	ld a, [wMarioAnimIndex]
 	and a, $F0
 	or a, 1
-	ld [wAnimIndex], a
+	ld [wMarioAnimIndex], a
 .jmp_1E8B
 	ld hl, wMarioMomentum		; speed?
 	ld a, [hl]
@@ -4576,7 +4576,7 @@ MoveMario::
 	add [hl]
 	ld [hl], a
 .jmp_1E9F
-	ld hl, $C20B
+	ld hl, wMarioAnimFrameCounter
 	dec [hl]
 	ret
 
@@ -4598,12 +4598,12 @@ DetermineWalkingSpeed
 	push de
 	push hl
 	ld hl, SpeedData
-	ld a, [$C20E]		; 02 walking 04 running
+	ld a, [wMarioRunning]		; 02 walking 04 running
 	ld e, a
 	ld d, 0
-	ld a, [$C20F]		; 01 standing still, flips between 1 and 0 walking
+	ld a, [wC20F]		; 01 standing still, flips between 1 and 0 walking
 	xor a, 1
-	ld [$C20F], a
+	ld [wC20F], a
 	add e
 	ld e, a
 	add hl, de
@@ -5030,7 +5030,7 @@ Call_2113:: ; 2113
 
 InitialStateData::
 	; C200. Mario's position, state, animation etc..
-	;  vis  			Y    X   spr  	  flip		    		  jmp state
+	;  visibility  		Y    X   spr  	  flip		    		  jmp state
 	db SPRITE_VISIBLE, 134, 50, $00, $00, SPRITE_NO_FLIP, $00, MARIO_ON_GROUND, $00, $00
 	ds 6
 	; C210 - C240. Fragments from breakable block, clouds, Daisy, spaceship
@@ -5466,9 +5466,9 @@ HandleAutoScrollLevel::
     and 3
     ret nz
 
-    ld a, [wAnimIndex]
+    ld a, [wMarioAnimIndex]
     xor 1
-    ld [wAnimIndex], a
+    ld [wMarioAnimIndex], a
     ret
 
 AnimateBackground:: ; 2401
