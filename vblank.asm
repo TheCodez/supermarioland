@@ -1,5 +1,3 @@
-SECTION "VBlank", ROM0[$0060]
-
 VBlank:: ; $0060
 ; Coincides with the joypad interrupt, which is unused afaict
 	push af

@@ -1,5 +1,3 @@
-SECTION "DMARoutine", ROM0[$3F92]
-
 DMARoutine::
 	ld a, HIGH(wOAMBuffer)
 	ldh [rDMA], a

@@ -56,6 +56,10 @@ INCLUDE "vblank.asm"
 
 INCLUDE "lcd_stat.asm"
 
+SECTION "Entry point", ROM0[$0100]
+	nop
+	jp Start
+
 ; Missing values will be filled in by rgbfix
 SECTION "Header", ROM0[$104]
 	ds $30		; Nintendo Logo
@@ -73,7 +77,8 @@ SECTION "Header", ROM0[$104]
 	ds 1		; Header Checksum
 	ds 2		; Global Checksum
 
-INCLUDE "init.asm"
+Start::	; 0150
+	jp Init
 
 ; X and Y coordinates in FFAD and FFAE
 LookupTile:: ; 153

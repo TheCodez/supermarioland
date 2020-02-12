@@ -19,7 +19,7 @@ LevelPointersBank2:: ; 2:4000
 	dw $6192
 	dw $61B7
 	dw $61DA
-	dw MenuLevelData	; Start Menu
+	dw $6190	; Start Menu
 
 LevelEnemyPointersBank2:: ; 2:401A
 	dw $6002	; 1-1

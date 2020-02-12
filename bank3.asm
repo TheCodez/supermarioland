@@ -310,7 +310,6 @@ Call_490D:: ; 490D
 INCBIN "baserom.gb", $C966, $4E74 - $4966
 
 SECTION "bank 3 levels", ROMX[$503F], BANK[3]
-
 INCBIN "baserom.gb", $D03F, $6600 - $503F
 
 Data_6600

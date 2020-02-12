@@ -1,5 +1,3 @@
-SECTION "ReadJoypad", ROMX[$47F2], BANK[2]
-
 ReadJoypad:: ; 47F2
 	ld a, $20		; select button keys
 	ldh [rJOYP], a
