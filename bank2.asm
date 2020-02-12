@@ -73,8 +73,8 @@ HandleBonusGameDescendLadder:: ; 583B
 HandleBonusGameAscendLadder:: ; 583E
 	jp _HandleBonusGameAscendLadder
 
-GameState_1A:: ; 5841
-	jp _GameState_1A
+HandleBonusGameGettingPrice:: ; 5841
+	jp _HandleBonusGameGettingPrice
 
 ; why
 UpdateTimerAndFloaties:: ; 5844
@@ -509,7 +509,7 @@ _HandleBonusGameMarioSprites:: ; 5A72
 	inc d
 	ld a, d
 	ld [hl], a		; tile number
-	ld a, STATE_21
+	ld a, STATE_BONUS_GAME
 	ldh [hGameState], a
 	ret
 
@@ -615,7 +615,7 @@ _HandleBonusGame:: ; 5ABB
 	ld a, $2D
 	ld [hl], a
 .jmp_5B51
-	ld a, STATE_22
+	ld a, STATE_BONUS_MOVE_LADDER
 	ldh [hGameState], a
 	ret
 
@@ -624,7 +624,7 @@ _HandleBonusGame:: ; 5ABB
 	ld [$DA22], a
 	ld [$DA27], a
 	ld [$DA1A], a
-	ld a, STATE_23
+	ld a, STATE_BONUS_WALKING
 	ldh [hGameState], a
 	ret
 
@@ -639,7 +639,7 @@ _HandleBonusGameWalking:: ; 5B65
 	ld [hl], a
 .jmp_5B73
 	ld hl, wOAMBuffer + 4 * $C + 1	; X pos
-	ld de, $5C9D			; todo
+	ld de, Data_5C9D			; todo
 	ld b, 4
 	ld a, [$DA14]			; animation index
 	and a
@@ -655,7 +655,7 @@ _HandleBonusGameWalking:: ; 5B65
 	ld c, a
 	cp a, $FF				; end of animation, restart
 	jr nz, .checkSuper
-	ld de, $5C9D			; End of animation, restart
+	ld de, Data_5C9D			; End of animation, restart
 	xor a
 	ld [$DA14], a
 	ld a, [de]
@@ -703,26 +703,26 @@ _HandleBonusGameWalking:: ; 5B65
 	ret
 
 .goDownLadder
-	ld a, STATE_24
+	ld a, STATE_BONUS_DESCEND_LADDER
 	ldh [hGameState], a
 	ret
 
 .goUpLadder
-	ld a, STATE_25
+	ld a, STATE_BONUS_ASCEND_LADDER
 	ldh [hGameState], a
 	ret
 
 .getPrize
 	xor a
 	ld [$DA1C], a
-	ld a, STATE_26
+	ld a, STATE_BONUS_GETTING_PRICE
 	ldh [hGameState], a
 	ret
 
 _HandleBonusGameDescendLadder:: ; 5BEB
 	ld hl, wOAMBuffer + 4 * $C
 	ld b, 4			; 4 objects per sprite
-	ld de, $5C9D
+	ld de, Data_5C9D
 	ld a, [$DA14]
 	and a
 	jr z, .objectLoop
@@ -739,7 +739,7 @@ _HandleBonusGameDescendLadder:: ; 5BEB
 	ld c, a
 	cp a, $FF
 	jr nz, .checkSuper
-	ld de, $5C9D		; reset animation
+	ld de, Data_5C9D		; reset animation
 	xor a
 	ld [$DA14], a
 	ld a, [de]
@@ -774,14 +774,14 @@ _HandleBonusGameDescendLadder:: ; 5BEB
 .resumeWalking
 	ld a, $08
 	ld [$DA16], a
-	ld a, STATE_23
+	ld a, STATE_BONUS_WALKING
 	ldh [hGameState], a
 	ret
 
 _HandleBonusGameAscendLadder:: ; 5C44
 	ld hl, wOAMBuffer + 4 * $C
 	ld b, $04			; 4 objects per sprite
-	ld de, $5C9D
+	ld de, Data_5C9D
 	ld a, [$DA14]
 	and a
 	jr z, .objectLoop
@@ -798,7 +798,7 @@ _HandleBonusGameAscendLadder:: ; 5C44
 	ld c, a
 	cp a, $FF
 	jr nz, .checkSuper
-	ld de, $5C9D		; reset animation
+	ld de, Data_5C9D		; reset animation
 	xor a
 	ld [$DA14], a
 	ld a, [de]
@@ -833,7 +833,7 @@ _HandleBonusGameAscendLadder:: ; 5C44
 .resumeWalking
 	ld a, 8
 	ld [$DA16], a
-	ld a, STATE_23
+	ld a, STATE_BONUS_WALKING
 	ldh [hGameState], a
 	ret
 
@@ -857,7 +857,7 @@ Data_5C9D:: ; FC9D
 	db $04, $05, $14, $15
 	db $FF
 
-_GameState_1A:: ; 5CDE
+_HandleBonusGameGettingPrice:: ; 5CDE
 	ld a, [$DA17]
 	and a
 	jp nz, .jmp_5D69
@@ -937,7 +937,7 @@ _GameState_1A:: ; 5CDE
 	and a
 	jr z, .awardFlower
 	ld hl, wActiveMusic
-	ld a, $0E				; Lose sound
+	ld a, MUSIC_BONUS_GAME_LOSE		; Lose sound
 	ld [hl], a
 	ld a, $01				; no prize
 	ld [$DA17], a
@@ -1155,7 +1155,7 @@ _GameState_1A:: ; 5CDE
 	swap a
 	ld [de], a
 .jmp_5EA9
-	ld a, $01
+	ld a, 1
 	ld [$DA20], a
 	ld [$DA21], a
 	ret

@@ -316,7 +316,7 @@ HandleGameState::
 	dw HandleBonusGameWalking ; 0x17 ✓ Bonus game walking
 	dw HandleBonusGameDescendLadder ; 0x18 ✓ Bonus game descending ladder
 	dw HandleBonusGameAscendLadder ; 0x19 ✓ Bonus game ascending ladder
-	dw GameState_1A ; 0x1A ✓ Getting price
+	dw HandleBonusGameGettingPrice ; 0x1A ✓ Getting price
 	dw HandleLeaveBonusGame ; 0x1B ✓ Leaving Bonus game
 	dw GameState_1C ; 0x1C ✓ Smth with the gate after a boss
 	dw GameState_1D ; 0x1D ✓
@@ -7693,7 +7693,7 @@ HandleMoveLadder:: ; 3EA7
 	ld a, 3
 	ld [$DA29], a
 .nextState
-	ld a, STATE_21
+	ld a, STATE_BONUS_GAME
 	ldh [hGameState], a
 	ret
 

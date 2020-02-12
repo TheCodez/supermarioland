@@ -307,6 +307,7 @@ Call_490D:: ; 490D
 	ld [bc], a
 	ret
 
+SECTION "bank 3 some code and data", ROMX[$4966], BANK[3]
 INCBIN "baserom.gb", $C966, $4E74 - $4966
 
 SECTION "bank 3 levels", ROMX[$503F], BANK[3]
@@ -425,8 +426,10 @@ _Call_7FF0:: ; 6662
 	ld [$DFF9], a
 	ld a, $30
 	ldh [hPauseTuneTimer], a
+
 .playFirstNote
 	ld hl, .pauseFirstNoteData
+
 .playNote
 	call SetupChannel.square2
 	jr .out
@@ -656,7 +659,7 @@ ContinueCoinSFX:: ; 681D
 	ld hl, $DFE4
 	inc [hl]
 	ld a, [hl]
-	cp a, $04
+	cp a, 4
 	jr z, .secondTone
 	cp a, $18
 	jp z, ContinueSquareSFX.stop
@@ -675,7 +678,7 @@ StompChannelData2::
 StartStompSFX:: ; 683D
 	call Call_6791.jmp_679C
 	ret z
-	ld a, $08
+	ld a, 8
 	ld hl, StompChannelData1
 	jp Jmp_69C6
 
@@ -686,9 +689,9 @@ ContinueStompSFX:: ; 6849
 	ld hl, $DFE4
 	ld a, [hl]
 	inc [hl]
-	cp a, $00
+	cp a, 0
 	jr z, .jmp_685D
-	cp a, $01
+	cp a, 1
 	jp z, ContinueSquareSFX.stop
 	ret
 
@@ -706,7 +709,7 @@ StartFlowerSFX:: ; 6868
 	ld hl, FlowerChannelData
 	jp Jmp_69C6
 
-GrowChannelData
+GrowChannelData::
 	db $27, $80, $8A, $10, $86 ; 264.3 Hz ~ C4 (17 cents off though)
 
 StartGrowSFX:: ; 687A
@@ -745,14 +748,15 @@ StartBumpSFX:: ; 68A5
 
 InjuryChannelData::
 	db $3A, $80, $E3, $20, $86 ; 273.1 Hz (one octave above the bump thing?)
-InjuryEnvelopeData
+
+InjuryEnvelopeData::
 	db $F3, $B3, $A3, $93, $83, $73, $63, $53, $43, $33, $23, $23, $13, $00
 
 StartInjurySFX::
 	ld a, [$DFE1]
 	cp a, SFX_1UP
 	ret z
-	ld a, $06
+	ld a, 6
 	ld hl, InjuryChannelData
 	jp Jmp_69C6
 
@@ -1039,7 +1043,7 @@ _InitSound:: ; 6A33
 	ld a, $FF
 	ldh [rNR51], a	; enable all channels to both outputs
 .muteChannels
-	ld a, $08
+	ld a, 8
 	ldh [rNR12], a
 	ldh [rNR22], a
 	ldh [rNR42], a	; volume to zero, enable envelope?
