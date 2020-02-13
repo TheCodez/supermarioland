@@ -41,11 +41,11 @@ def dump_block(bank, block_pointer):
 
     print("%04x - %04x" % (block_pointer, column_pointer))
 
-    filename = "levels/block-%d:%4x.bin" % (bank, block_pointer)
+    filename = "levels/block_%d_%4x.bin" % (bank, block_pointer)
     with open(filename, "wb") as f:
         f.write(rom[block_pointer: column_pointer])
 
-    blocks_dumped[block_pointer] = column_pointer
+    blocks_dumped[block_pointer] = (bank, column_pointer)
 
 def level_index_to_world_level(index):
     world = (index // 3)
@@ -120,11 +120,18 @@ for level in range(12):
     enemy_pointer = read_word(bank, 0x401A + 2 * level)
     dump_enemy_locations(levelname, bank, enemy_pointer)
 
+curr_addr, (curr_bank, _) = min(blocks_dumped.items(), key=lambda x: x[0])
+f.write(f'SECTION "Blocks {curr_bank}_{curr_addr:x}", ROMX[${curr_addr:x}], BANK[{curr_bank}]\n\n')
 
-f.write('SECTION "level %s blocks", ROMX[$%x], BANK[%d]\n\n' % (levelname, min(blocks_dumped.keys()), bank))
 for ptr in sorted(blocks_dumped.keys()):
+    block_bank, block_addr = blocks_dumped.get(ptr)
+
+    if block_bank != curr_bank:
+        curr_bank = block_bank
+        f.write(f'SECTION "Blocks {curr_bank}_{ptr:x}", ROMX[${ptr:x}], BANK[{curr_bank}]\n')
+
     f.write('block_%4x:\n' % ptr)
-    f.write('INCBIN "block%4x.bin"\n' % ptr)
+    f.write('INCBIN "levels/block_%d_%4x.bin"\n\n' % (block_bank, ptr))
 
 
 f.close()
