@@ -743,7 +743,7 @@ HandleGamePlay::	; 627
     ld a, 3
     ldh [hActiveRomBank], a
     ld [MBC1RomBank], a
-    call $48FC
+    call Call_03_48FC
     ld bc, wC208
     ld hl, JumpingCurve
     call Call_490D
@@ -759,13 +759,13 @@ HandleGamePlay::	; 627
     ld bc, $C248
     ld hl, JumpingCurve
     call Call_490D
-    call $4A94
-    call $498B
-    call $4AEA
-    call $4B3C
-    call $4B6F
-    call $4B8A
-    call $4BB5
+    call Call_03_4A94
+    call Call_03_498B
+    call Call_03_4AEA
+    call Call_03_4B3C
+    call Call_03_4B6F
+    call Call_03_4B8A
+    call Call_03_4BB5
     ldh a, [hSavedRomBank]
     ldh [hActiveRomBank], a
     ld [MBC1RomBank], a
@@ -5364,7 +5364,7 @@ HandleAutoScrollLevel::
     ld a, 3
     ldh [hActiveRomBank], a
     ld [MBC1RomBank], a
-    call $498B
+    call Call_03_498B
     ld bc, $C218
     ld hl, JumpingCurve
     call Call_490D
@@ -5377,9 +5377,9 @@ HandleAutoScrollLevel::
     ld bc, $C248
     ld hl, JumpingCurve
     call Call_490D
-    call $4AEA
-    call $4B8A
-    call $4BB5
+    call Call_03_4AEA
+    call Call_03_4B8A
+    call Call_03_4BB5
     ldh a, [hSavedRomBank]
     ldh [hActiveRomBank], a
     ld [MBC1RomBank], a

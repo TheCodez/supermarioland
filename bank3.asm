@@ -77,7 +77,7 @@ Call_4823:: ; 4823
 	dec b
 	jr nz, .jmp_484F
 	ldh a, [$FF89]
-	ld hl, $4C37
+	ld hl, Data_4C37
 	rlca
 	ld e, a
 	ld d, $00
@@ -204,6 +204,7 @@ Call_4823:: ; 4823
 	pop hl
 	jp .jmp_4872
 
+Call_03_48FC::
 .jmp_48FC
 	ld hl, $C209
 	ld a, [hl]
@@ -307,6 +308,7 @@ Call_490D:: ; 490D
 	ld [bc], a
 	ret
 
+
 jr_003_4966:
     inc e                                         ; $4966: $1C
     ld a, [de]                                    ; $4967: $1A
@@ -341,6 +343,7 @@ jr_003_4988:
     pop af                                        ; $4988: $F1
     jr jr_003_49AC                                ; $4989: $18 $21
 
+Call_03_498B::
     ldh a, [$B3]                                  ; $498B: $F0 $B3
     cp $0D                                        ; $498D: $FE $0D
     jp z, Jump_003_4A7F                           ; $498F: $CA $7F $4A
@@ -549,7 +552,7 @@ Jump_003_4A7F:
     dec [hl]                                      ; $4A92: $35
     ret                                           ; $4A93: $C9
 
-
+Call_03_4A94::
     ldh a, [$9F]                                  ; $4A94: $F0 $9F
     and a                                         ; $4A96: $A7
     ret z                                         ; $4A97: $C8
@@ -614,339 +617,266 @@ Data_4AE4::
 	db $64
 	db $9a
 	db $64
-	db $06
-	db $04
-	db $11
-	db $10
-	db $00
-	db $21
-	db $10
-	db $c2
-	db $e5
-	db $7e
-	db $fe
-	db $80
-	db $20
-	db $02
-	db $36
-	db $ff
-	db $a7
-	db $20
-	db $1e
-	db $d5
-	db $11
-	db $07
-	db $00
-	db $19
-	db $d1
-	db $7e
-	db $a7
-	db $28
-	db $2b
-	db $2d
-	db $2d
-	db $7e
-	db $2d
-	db $2d
-	db $2d
-	db $a7
-	db $20
-	db $15
-	db $34
-	db $f0
-	db $f3
-	db $4f
-	db $f0
-	db $a4
-	db $91
-	db $4f
-	db $7e
-	db $91
-	db $77
-	db $e1
-	db $19
-	db $05
-	db $20
-	db $d2
-	db $f0
-	db $a4
-	db $e0
-	db $f3
-	db $c9
-	db $35
-	db $f0
-	db $f3
-	db $4f
-	db $f0
-	db $a4
-	db $91
-	db $4f
-	db $7e
-	db $91
-	db $77
-	db $18
-	db $e9
-	db $e1
-	db $e5
-	db $36
-	db $80
-	db $2c
-	db $2c
-	db $36
-	db $ff
-	db $18
-	db $df
-	db $f0
-	db $ee
-	db $fe
-	db $03
-	db $c0
-	db $21
-	db $2d
-	db $c0
-	db $f0
-	db $a4
-	db $47
-	db $f0
-	db $f2
-	db $90
-	db $32
-	db $fa
-	db $01
-	db $c2
-	db $d6
-	db $0b
-	db $77
-	db $fa
-	db $0a
-	db $c2
-	db $a7
-	db $20
-	db $0b
-	db $f0
-	db $f1
-	db $47
-	db $d6
-	db $04
-	db $be
-	db $30
-	db $0a
-	db $78
-	db $be
-	db $d0
-	db $36
-	db $00
-	db $3e
-	db $04
-	db $e0
-	db $ee
-	db $c9
-	db $3e
-	db $02
-	db $ea
-	db $07
-	db $c2
-	db $c9
-	db $21
-	db $01
-	db $c2
-	db $7e
-	db $fe
-	db $b4
-	db $d8
-	db $fe
-	db $c0
-	db $d0
-	db $af
-	db $e0
-	db $99
-	db $e0
-	db $b5
-	db $3c
-	db $e0
-	db $b3
-	db $3c
-	db $ea
-	db $e8
-	db $df
-	db $3e
-	db $90
-	db $e0
-	db $a6
-	db $c9
-	db $f0
-	db $99
-	db $fe
-	db $01
-	db $c0
-	db $f0
-	db $a6
-	db $a7
-	db $28
-	db $10
-	db $e6
-	db $03
-	db $c0
-	db $af
-	db $ea
-	db $00
-	db $c2
-	db $fa
-	db $03
-	db $c2
-	db $ee
-	db $10
-	db $ea
-	db $03
-	db $c2
-	db $c9
-	db $3e
-	db $02
-	db $e0
-	db $99
-	db $af
-	db $ea
-	db $00
-	db $c2
-	db $fa
-	db $03
-	db $c2
-	db $f6
-	db $10
-	db $ea
-	db $03
-	db $c2
-	db $c9
-	db $f0
-	db $99
-	db $fe
-	db $04
-	db $28
-	db $25
-	db $fe
-	db $03
-	db $c0
-	db $f0
-	db $a6
-	db $a7
-	db $28
-	db $0c
-	db $e6
-	db $03
-	db $c0
-	db $fa
-	db $03
-	db $c2
-	db $ee
-	db $10
-	db $ea
-	db $03
-	db $c2
-	db $c9
-	db $3e
-	db $04
-	db $e0
-	db $99
-	db $3e
-	db $40
-	db $e0
-	db $a6
-	db $fa
-	db $03
-	db $c2
-	db $e6
-	db $0f
-	db $ea
-	db $03
-	db $c2
-	db $c9
-	db $f0
-	db $a6
-	db $a7
-	db $28
-	db $0c
-	db $e6
-	db $03
-	db $c0
-	db $fa
-	db $00
-	db $c2
-	db $ee
-	db $80
-	db $ea
-	db $00
-	db $c2
-	db $c9
-	db $af
-	db $e0
-	db $99
-	db $ea
-	db $00
-	db $c2
-	db $fa
-	db $03
-	db $c2
-	db $e6
-	db $0f
-	db $ea
-	db $03
-	db $c2
-	db $c9
-	db $f0
-	db $9f
-	db $fe
-	db $ff
-	db $c0
-	db $f0
-	db $80
-	db $47
-	db $fa
-	db $da
-	db $c0
-	db $b8
-	db $28
-	db $21
-	db $21
-	db $00
-	db $c3
-	db $fa
-	db $d9
-	db $c0
-	db $5f
-	db $16
-	db $00
-	db $19
-	db $fa
-	db $da
-	db $c0
-	db $22
-	db $fa
-	db $d8
-	db $c0
-	db $77
-	db $1c
-	db $1c
-	db $7b
-	db $ea
-	db $d9
-	db $c0
-	db $78
-	db $ea
-	db $da
-	db $c0
-	db $af
-	db $ea
-	db $d8
-	db $c0
-	db $c9
-	db $fa
-	db $d8
-	db $c0
-	db $3c
-	db $ea
-	db $d8
-	db $c0
-	db $c9
+
+Call_03_4AEA::
+    ld b, $04                                     ; $4AEA: $06 $04
+    ld de, $0010                                  ; $4AEC: $11 $10 $00
+    ld hl, wEntityVisible                         ; $4AEF: $21 $10 $C2
+
+jr_003_4AF2:
+    push hl                                       ; $4AF2: $E5
+    ld a, [hl]                                    ; $4AF3: $7E
+    cp $80                                        ; $4AF4: $FE $80
+    jr nz, jr_003_4AFA                            ; $4AF6: $20 $02
+
+    ld [hl], $FF                                  ; $4AF8: $36 $FF
+
+jr_003_4AFA:
+    and a                                         ; $4AFA: $A7
+    jr nz, jr_003_4B1B                            ; $4AFB: $20 $1E
+
+    push de                                       ; $4AFD: $D5
+    ld de, $0007                                  ; $4AFE: $11 $07 $00
+    add hl, de                                    ; $4B01: $19
+    pop de                                        ; $4B02: $D1
+    ld a, [hl]                                    ; $4B03: $7E
+    and a                                         ; $4B04: $A7
+    jr z, jr_003_4B32                             ; $4B05: $28 $2B
+
+    dec l                                         ; $4B07: $2D
+    dec l                                         ; $4B08: $2D
+    ld a, [hl]                                    ; $4B09: $7E
+    dec l                                         ; $4B0A: $2D
+    dec l                                         ; $4B0B: $2D
+    dec l                                         ; $4B0C: $2D
+    and a                                         ; $4B0D: $A7
+    jr nz, jr_003_4B25                            ; $4B0E: $20 $15
+
+    inc [hl]                                      ; $4B10: $34
+    ldh a, [$F3]                                  ; $4B11: $F0 $F3
+    ld c, a                                       ; $4B13: $4F
+    ldh a, [$A4]                                  ; $4B14: $F0 $A4
+    sub c                                         ; $4B16: $91
+    ld c, a                                       ; $4B17: $4F
+    ld a, [hl]                                    ; $4B18: $7E
+    sub c                                         ; $4B19: $91
+    ld [hl], a                                    ; $4B1A: $77
+
+jr_003_4B1B:
+    pop hl                                        ; $4B1B: $E1
+    add hl, de                                    ; $4B1C: $19
+    dec b                                         ; $4B1D: $05
+    jr nz, jr_003_4AF2                            ; $4B1E: $20 $D2
+
+    ldh a, [$A4]                                  ; $4B20: $F0 $A4
+    ldh [$F3], a                                  ; $4B22: $E0 $F3
+    ret                                           ; $4B24: $C9
+
+
+jr_003_4B25:
+    dec [hl]                                      ; $4B25: $35
+    ldh a, [$F3]                                  ; $4B26: $F0 $F3
+    ld c, a                                       ; $4B28: $4F
+    ldh a, [$A4]                                  ; $4B29: $F0 $A4
+    sub c                                         ; $4B2B: $91
+    ld c, a                                       ; $4B2C: $4F
+    ld a, [hl]                                    ; $4B2D: $7E
+    sub c                                         ; $4B2E: $91
+    ld [hl], a                                    ; $4B2F: $77
+    jr jr_003_4B1B                                ; $4B30: $18 $E9
+
+jr_003_4B32:
+    pop hl                                        ; $4B32: $E1
+    push hl                                       ; $4B33: $E5
+    ld [hl], $80                                  ; $4B34: $36 $80
+    inc l                                         ; $4B36: $2C
+    inc l                                         ; $4B37: $2C
+    ld [hl], $FF                                  ; $4B38: $36 $FF
+    jr jr_003_4B1B                                ; $4B3A: $18 $DF
+
+Call_03_4B3C::
+    ldh a, [$EE]                                  ; $4B3C: $F0 $EE
+    cp $03                                        ; $4B3E: $FE $03
+    ret nz                                        ; $4B40: $C0
+
+    ld hl, $C02D                                  ; $4B41: $21 $2D $C0
+    ldh a, [$A4]                                  ; $4B44: $F0 $A4
+    ld b, a                                       ; $4B46: $47
+    ldh a, [$F2]                                  ; $4B47: $F0 $F2
+    sub b                                         ; $4B49: $90
+    ldd [hl], a                                   ; $4B4A: $32
+    ld a, [wMarioPosY]                            ; $4B4B: $FA $01 $C2
+    sub $0B                                       ; $4B4E: $D6 $0B
+    ld [hl], a                                    ; $4B50: $77
+    ld a, [wMarioOnGround]                        ; $4B51: $FA $0A $C2
+    and a                                         ; $4B54: $A7
+    jr nz, jr_003_4B62                            ; $4B55: $20 $0B
+
+    ldh a, [$F1]                                  ; $4B57: $F0 $F1
+    ld b, a                                       ; $4B59: $47
+    sub $04                                       ; $4B5A: $D6 $04
+    cp [hl]                                       ; $4B5C: $BE
+    jr nc, jr_003_4B69                            ; $4B5D: $30 $0A
+
+    ld a, b                                       ; $4B5F: $78
+    cp [hl]                                       ; $4B60: $BE
+    ret nc                                        ; $4B61: $D0
+
+jr_003_4B62:
+    ld [hl], $00                                  ; $4B62: $36 $00
+    ld a, $04                                     ; $4B64: $3E $04
+    ldh [$EE], a                                  ; $4B66: $E0 $EE
+    ret                                           ; $4B68: $C9
+
+
+jr_003_4B69:
+    ld a, $02                                     ; $4B69: $3E $02
+    ld [wJumpStatus], a                           ; $4B6B: $EA $07 $C2
+    ret                                           ; $4B6E: $C9
+
+Call_03_4B6F::
+    ld hl, wMarioPosY                             ; $4B6F: $21 $01 $C2
+    ld a, [hl]                                    ; $4B72: $7E
+    cp $B4                                        ; $4B73: $FE $B4
+    ret c                                         ; $4B75: $D8
+
+    cp $C0                                        ; $4B76: $FE $C0
+    ret nc                                        ; $4B78: $D0
+
+    xor a                                         ; $4B79: $AF
+    ldh [$99], a                                  ; $4B7A: $E0 $99
+    ldh [$B5], a                                  ; $4B7C: $E0 $B5
+    inc a                                         ; $4B7E: $3C
+    ldh [$B3], a                                  ; $4B7F: $E0 $B3
+    inc a                                         ; $4B81: $3C
+    ld [wPlaySong], a                             ; $4B82: $EA $E8 $DF
+    ld a, $90                                     ; $4B85: $3E $90
+    ldh [$A6], a                                  ; $4B87: $E0 $A6
+    ret                                           ; $4B89: $C9
+
+Call_03_4B8A::
+    ldh a, [$99]                                  ; $4B8A: $F0 $99
+    cp $01                                        ; $4B8C: $FE $01
+    ret nz                                        ; $4B8E: $C0
+
+    ldh a, [$A6]                                  ; $4B8F: $F0 $A6
+    and a                                         ; $4B91: $A7
+    jr z, jr_003_4BA4                             ; $4B92: $28 $10
+
+    and $03                                       ; $4B94: $E6 $03
+    ret nz                                        ; $4B96: $C0
+
+    xor a                                         ; $4B97: $AF
+    ld [wMarioVisible], a                         ; $4B98: $EA $00 $C2
+    ld a, [wMarioAnimIndex]                       ; $4B9B: $FA $03 $C2
+    xor $10                                       ; $4B9E: $EE $10
+    ld [wMarioAnimIndex], a                       ; $4BA0: $EA $03 $C2
+    ret                                           ; $4BA3: $C9
+
+
+jr_003_4BA4:
+    ld a, $02                                     ; $4BA4: $3E $02
+    ldh [$99], a                                  ; $4BA6: $E0 $99
+    xor a                                         ; $4BA8: $AF
+    ld [wMarioVisible], a                         ; $4BA9: $EA $00 $C2
+    ld a, [wMarioAnimIndex]                       ; $4BAC: $FA $03 $C2
+    or $10                                        ; $4BAF: $F6 $10
+    ld [wMarioAnimIndex], a                       ; $4BB1: $EA $03 $C2
+    ret                                           ; $4BB4: $C9
+
+Call_03_4BB5::
+    ldh a, [$99]                                  ; $4BB5: $F0 $99
+    cp $04                                        ; $4BB7: $FE $04
+    jr z, jr_003_4BE0                             ; $4BB9: $28 $25
+
+    cp $03                                        ; $4BBB: $FE $03
+    ret nz                                        ; $4BBD: $C0
+
+    ldh a, [$A6]                                  ; $4BBE: $F0 $A6
+    and a                                         ; $4BC0: $A7
+    jr z, jr_003_4BCF                             ; $4BC1: $28 $0C
+
+    and $03                                       ; $4BC3: $E6 $03
+    ret nz                                        ; $4BC5: $C0
+
+    ld a, [wMarioAnimIndex]                       ; $4BC6: $FA $03 $C2
+    xor $10                                       ; $4BC9: $EE $10
+    ld [wMarioAnimIndex], a                       ; $4BCB: $EA $03 $C2
+    ret                                           ; $4BCE: $C9
+
+
+jr_003_4BCF:
+    ld a, $04                                     ; $4BCF: $3E $04
+    ldh [$99], a                                  ; $4BD1: $E0 $99
+    ld a, $40                                     ; $4BD3: $3E $40
+    ldh [$A6], a                                  ; $4BD5: $E0 $A6
+    ld a, [wMarioAnimIndex]                       ; $4BD7: $FA $03 $C2
+    and $0F                                       ; $4BDA: $E6 $0F
+    ld [wMarioAnimIndex], a                       ; $4BDC: $EA $03 $C2
+    ret                                           ; $4BDF: $C9
+
+
+jr_003_4BE0:
+    ldh a, [$A6]                                  ; $4BE0: $F0 $A6
+    and a                                         ; $4BE2: $A7
+    jr z, jr_003_4BF1                             ; $4BE3: $28 $0C
+
+    and $03                                       ; $4BE5: $E6 $03
+    ret nz                                        ; $4BE7: $C0
+
+    ld a, [wMarioVisible]                         ; $4BE8: $FA $00 $C2
+    xor $80                                       ; $4BEB: $EE $80
+    ld [wMarioVisible], a                         ; $4BED: $EA $00 $C2
+    ret                                           ; $4BF0: $C9
+
+
+jr_003_4BF1:
+    xor a                                         ; $4BF1: $AF
+    ldh [$99], a                                  ; $4BF2: $E0 $99
+    ld [wMarioVisible], a                         ; $4BF4: $EA $00 $C2
+    ld a, [wMarioAnimIndex]                       ; $4BF7: $FA $03 $C2
+    and $0F                                       ; $4BFA: $E6 $0F
+    ld [wMarioAnimIndex], a                       ; $4BFC: $EA $03 $C2
+    ret                                           ; $4BFF: $C9
+
+
+    ldh a, [$9F]                                  ; $4C00: $F0 $9F
+    cp $FF                                        ; $4C02: $FE $FF
+    ret nz                                        ; $4C04: $C0
+
+    ldh a, [$80]                                  ; $4C05: $F0 $80
+    ld b, a                                       ; $4C07: $47
+    ld a, [$C0DA]                                 ; $4C08: $FA $DA $C0
+    cp b                                          ; $4C0B: $B8
+    jr z, jr_003_4C2F                             ; $4C0C: $28 $21
+
+    ld hl, $C300                                  ; $4C0E: $21 $00 $C3
+    ld a, [$C0D9]                                 ; $4C11: $FA $D9 $C0
+    ld e, a                                       ; $4C14: $5F
+    ld d, $00                                     ; $4C15: $16 $00
+    add hl, de                                    ; $4C17: $19
+    ld a, [$C0DA]                                 ; $4C18: $FA $DA $C0
+    ldi [hl], a                                   ; $4C1B: $22
+    ld a, [$C0D8]                                 ; $4C1C: $FA $D8 $C0
+    ld [hl], a                                    ; $4C1F: $77
+    inc e                                         ; $4C20: $1C
+    inc e                                         ; $4C21: $1C
+    ld a, e                                       ; $4C22: $7B
+    ld [$C0D9], a                                 ; $4C23: $EA $D9 $C0
+    ld a, b                                       ; $4C26: $78
+    ld [$C0DA], a                                 ; $4C27: $EA $DA $C0
+    xor a                                         ; $4C2A: $AF
+    ld [$C0D8], a                                 ; $4C2B: $EA $D8 $C0
+    ret                                           ; $4C2E: $C9
+
+
+jr_003_4C2F:
+    ld a, [$C0D8]                                 ; $4C2F: $FA $D8 $C0
+    inc a                                         ; $4C32: $3C
+    ld [$C0D8], a                                 ; $4C33: $EA $D8 $C0
+    ret                                           ; $4C36: $C9
+
+Data_4C37::
 	db $8d
 	db $4c
 	db $91
