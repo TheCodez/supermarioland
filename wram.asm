@@ -143,7 +143,13 @@ wEntityPosX:: ; C212
 wEntityAnimIndex:: ; C213
 	ds 1
 
-ds $D002 - $C214
+ds $CF00 - $C214
+
+wStack::	; CF00
+	ds $100
+wStackEnd:: ; $D000
+
+ds 2
 
 wCurrentCommand:: ; D002
 	db

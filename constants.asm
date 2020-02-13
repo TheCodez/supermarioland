@@ -1,3 +1,6 @@
+; MBC1
+MBC1RomBank    EQU $2000
+
 ; mario state
 FACING_RIGHT_BIT EQU 0
 

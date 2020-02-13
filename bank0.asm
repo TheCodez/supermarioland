@@ -67,19 +67,19 @@ Init::	; 0185
 	jr nz, .waitVBlank	; Waits for VBlank?
 	
 	ld a, LCDCF_OBJON | LCDCF_BGON
-	ldh [rLCDC], a	; Turn LCD off
+	ldh [rLCDC], a		; Turn LCD off
 	ld a, %11100100
 	ldh [rBGP], a
 	ldh [rOBP0], a
 	ld a, %01010100
 	ldh [rOBP1], a
 	ld hl, rNR52
-	ld a, $80
-	ld [hld], a		; Turn the sound on
-	ld a, $FF
-	ld [hld], a		; Output all sounds to both terminals
-	ld [hl], $77	; Turn the volume up to the max
-	ld sp, $CFFF
+	ld a, AUDENA_ON
+	ld [hld], a			; Turn the sound on
+	ld a, AUDTERM_ALL
+	ld [hld], a			; Output all sounds to both terminals
+	ld [hl], AUDVOL_MAX	; Turn the volume up to the max
+	ld sp, wStackEnd - 1
 
 	xor a
 	ld hl, $DFFF	; End of Work RAM
@@ -160,7 +160,7 @@ Init::	; 0185
 	ldh a, [$FF9F]			; Demo mode?
 	and a
 	jr nz, .decrementTimers	; Can't pause the demo
-	call pauseOrReset
+	call PauseOrReset
 	ldh a, [hGamePaused]
 	and a
 	jr nz, .halt
@@ -290,10 +290,10 @@ InitMenu::
 	ldh [hScrollX], a
 	ld hl, wOAMBuffer
 	ld b, $9F
-.clearSpritesLoop
+.clearOAMLoop
 	ld [hli], a
 	dec b
-	jr nz, .clearSpritesLoop
+	jr nz, .clearOAMLoop
 	ldh [hSuperStatus], a
 	ld [wGameOverWindowEnabled], a
 	ld [wGameOverTimerExpired], a
@@ -306,25 +306,25 @@ InitMenu::
 	ld hl, MenuTiles1
 	ld de, vChars2 + $300 ; $9300
 	ld bc, MenuTiles1End - MenuTiles1
-	call CopyData	; loads tiles for the menu
+	call CopyData		; loads tiles for the menu
 	ld hl, MenuTiles2
 	ld de, vChars1
 	ld bc, MenuTiles2End - MenuTiles2
-	call CopyData	; and more tiles
+	call CopyData		; and more tiles
 	ld hl, $4862
 	ldh a, [hWinCount]
 	cp a, 1
-	jr c, .noWins	; no win yet
-	ld hl, $4E72
+	jr c, .noWins		; no win yet
+	ld hl, CommonTiles2 + $70; $4E72
 .noWins
-	ld de, $8AC0
+	ld de, vChars1 + $2C0
 	ld bc, $0010
 	call CopyData	; mushroom sprite (or mario head)
-	ld hl, $5032
+	ld hl, CommonTiles2 + $230; $5032
 	ld de, vChars2
 	ld bc, $02C0
 	call CopyData	; font, coins
-	ld hl, $5032
+	ld hl, CommonTiles2 + $230; $5032
 	ld de, vChars0
 	ld bc, $02A0
 	call CopyData	; same, but to the other tile data bank
@@ -697,7 +697,7 @@ INCLUDE "copy.asm"
 ; 5E7
 ; prepare tiles
 PrepareTiles::	; the three upper banks have tiles at the same location?
-	ld hl, $5032
+	ld hl, CommonTiles2 + $230 ; $5032
 	ld de, vChars2
 	ld bc, $0800
 	call CopyData
@@ -705,7 +705,7 @@ PrepareTiles::	; the three upper banks have tiles at the same location?
 	ld de, vChars0
 	ld bc, $1000
 	call CopyData
-	ld hl, $5603
+	ld hl, BackgroundWorld1 + $2C1 ; $5603
 	ld de, $C600	; copy of the animated background tile...
 	ld b, 8
 .loop
@@ -960,7 +960,7 @@ MusicByLevel::
 	db 7, 3, 3
 	db 6, 6, 5
 
-pauseOrReset:: ; 7DA
+PauseOrReset:: ; 7DA
 	ldh a, [hJoyHeld]
 	and a, PADF_A | PADF_B | PADF_START | PADF_SELECT
 	cp a, PADF_A | PADF_B | PADF_START | PADF_SELECT
@@ -3344,7 +3344,7 @@ MarioStandingOnBossSwitch:: ; 175B
 	jp MarioWins				; Mario wins
 
 ; Called every frame when standing on a pipe?
-MarioStandingOnPipe:: ; 1765
+HandlePipeEntry:: ; 1765
 	ldh a, [hJoyHeld]
 	bit PADB_DOWN, a
 	jp z, Jmp_185D			; Down button
@@ -3418,7 +3418,7 @@ Call_17BC:: ; 17BC
 	ldh [$FFAE], a
 	call LookupTile
 	cp a, BLOCK_PIPE_OPENING		; standing on pipe
-	jr z, MarioStandingOnPipe
+	jr z, HandlePipeEntry
 	cp a, $E1				; boss switch
 	jp z, MarioStandingOnBossSwitch			; can this be a JR?
 	cp a, $60				; solid tiles
@@ -3721,7 +3721,7 @@ Jmp_185D
 	cp a, $60
 	ret c					; non solid block
 .jmp_19BF
-	call IsSolidBlock			; platform-like blocks
+	call CheckForNonSolids			; platform-like blocks
 	and a					; zero if solid
 	ret z
 	cp a, $82				; breakable block
@@ -3827,7 +3827,7 @@ Jmp_185D
 
 ; Clears A if it's a solid block that does not have side or top collision,
 ; but can be stood upon, like a platform. Semi-solid platform
-IsSolidBlock:: ; 1A6B
+CheckForNonSolids:: ; 1A6B
 	push hl
 	push af
 	ld b, a
@@ -3914,7 +3914,7 @@ Call_1AAD:: ; 1AAD
 	ldh [$FFAE], a			; used in block detection
 	push de
 	call LookupTile
-	call IsSolidBlock			; detect if the block is passthrougable from the side
+	call CheckForNonSolids			; detect if the block is passthrougable from the side
 	pop de
 	and a
 	jr z, .checkNextTile
@@ -3964,7 +3964,7 @@ Call_1AAD:: ; 1AAD
 	ldh a, [hIsUnderground]
 	and a
 	jr z, .stopMario		; do nothing if we're not underground
-	ld a, $0B
+	ld a, STATE_LEVEL_START
 	ldh [hGameState], a
 	ld a, $80
 	ld [wC204], a		; mario in control?
