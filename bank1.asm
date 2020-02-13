@@ -48,11 +48,11 @@ Call_001_4FB2::
 
     ld a, [$C0D2]                                 ; $4FB7: $FA $D2 $C0
     cp $07                                        ; $4FBA: $FE $07
-    jr c, .jr_001_4FCB                             ; $4FBC: $38 $0D
+    jr c, .scroll                             ; $4FBC: $38 $0D
 
     ldh a, [hScrollX]                                  ; $4FBE: $F0 $A4
     and $0C                                       ; $4FC0: $E6 $0C
-    jr nz, .jr_001_4FCB                            ; $4FC2: $20 $07
+    jr nz, .scroll                            ; $4FC2: $20 $07
 
     ldh a, [hScrollX]                                  ; $4FC4: $F0 $A4
     and $FC                                       ; $4FC6: $E6 $FC
@@ -60,17 +60,17 @@ Call_001_4FB2::
     ret                                           ; $4FCA: $C9
 
 
-.jr_001_4FCB
+.scroll
     ldh a, [hScrollX]                                  ; $4FCB: $F0 $A4
     inc a                                         ; $4FCD: $3C
     ldh [hScrollX], a                                  ; $4FCE: $E0 $A4
-    ld b, $01                                     ; $4FD0: $06 $01
-    call MoveMario.call_1EA4                      ; $4FD2: $CD $A4 $1E
+    ld b, 1                                     ; shift x by 1
+    call MoveMario.shiftSprites                 ; $4FD2: $CD $A4 $1E
     call ScrollEnemiesByB                         ; $4FD5: $CD $9F $2C
-    ld hl, wMarioPosX                             ; $4FD8: $21 $02 $C2
-    dec [hl]                                      ; $4FDB: $35
-    ld a, [hl]                                    ; $4FDC: $7E
-    and a                                         ; $4FDD: $A7
+    ld hl, wMarioPosX                             
+    dec [hl]                                      ; move mario as well
+    ld a, [hl]                                    ; 
+    and a                                         ; 
     jr nz, .jr_001_4FE2                            ; $4FDE: $20 $02
 
     ld [hl], $F0                                  ; $4FE0: $36 $F0
@@ -313,11 +313,11 @@ Call_001_50CC:
     ret                                           ; $5117: $C9
 
 Call_01_5118::
-    ld b, $03                                     ; $5118: $06 $03
+    ld b, 3                                     ; $5118: $06 $03
     ld hl, $FFA9                                  ; $511A: $21 $A9 $FF
     ld de, wOAMBuffer + 1                         ; $511D: $11 $01 $C0
 
-.jr_001_5120
+.loop
     ld a, [hli]                                   ; $5120: $2A
     and a                                         ; $5121: $A7
     jr nz, .jr_001_512C                           ; $5122: $20 $08
@@ -328,7 +328,7 @@ Call_01_5118::
     inc e                                         ; $5126: $1C
     inc e                                         ; $5127: $1C
     dec b                                         ; $5128: $05
-    jr nz, .jr_001_5120                           ; $5129: $20 $F5
+    jr nz, .loop                           ; $5129: $20 $F5
 
     ret                                           ; $512B: $C9
 

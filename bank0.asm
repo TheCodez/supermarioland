@@ -58,7 +58,7 @@ Init::	; 0185
 	xor a
 	ldh [rSCY], a
 	ldh [rSCX], a
-	ldh [$A4], a
+	ldh [hScrollX], a
 	ld a, LCDCF_ON
 	ldh [rLCDC], a	; Turn LCD on, but don't display anything
 .waitVBlank
@@ -669,7 +669,7 @@ HandleStartLevel::	; 576
 	ld a, $5B
 	ldh [$FFE9], a
 	call SetIsBackgroundAnimated		; superfluous? happens in HandlePrepareNextLevel.loadWorldTiles?
-	call Call_3D1A		; todo
+	call InitLevel		; todo
 	call DisplayCoins
 	call UpdateLives.displayLives
 	ldh a, [hWorldAndLevel]
@@ -737,7 +737,7 @@ PrepareHUD::
 ; Normal gameplay.
 HandleGamePlay::	; 627
     call LoadColumns
-    call EntityCollision
+    call PlayerEntityCollision
     ldh a, [hActiveRomBank]
     ldh [hSavedRomBank], a
     ld a, 3
@@ -780,11 +780,11 @@ HandleGamePlay::	; 627
     ldh a, [hSavedRomBank]
     ldh [hActiveRomBank], a
     ld [MBC1RomBank], a
-    call Jmp_185D.call_198C
-    call Call_16F5
+    call Call_198C
+    call AnimateAndMoveMario
     call Call_17BC
     call Call_AEA
-    call Call_A2D
+    call ProcessMarioHitBouncingBlock
     call Call_1F03
     ld hl, $C0CE
     ld a, [hl]
@@ -1037,7 +1037,7 @@ DrawInitialScreen::
 
 ; called from main gameplay subroutine
 ; player "entity" (enemy, powerup) collision
-EntityCollision:: ; 84E
+PlayerEntityCollision:: ; 84E
 	ldh a, [hStompChainTimer]
 	and a
 	jr z, .skip			; don't decrement below zero
@@ -1104,7 +1104,7 @@ EntityCollision:: ; 84E
 	jp z, .powerUpCollision
 	ldh a, [$FFFB]		; gets overwritten immediately. Bug?
 	ldh a, [hGameState]
-	cp a, $0D			; autoscroll
+	cp a, STATE_AUTOSCROLL_LEVEL			; autoscroll
 	jr z, .jmp_8C3
 	ld a, [wInvincibilityTimer]
 	and a
@@ -1139,28 +1139,28 @@ EntityCollision:: ; 84E
 	bit 7, [hl]			; 7 bit set, enemy can't die
 	pop hl
 	jr nz, .out
-	call Call_A10		; hit enemy
+	call EnemyHit					; hit enemy
 	call StombEnemy
 	and a
 	jr z, .out
-	ld hl, wMarioOnGround	; 1 if on ground
+	ld hl, wMarioOnGround			; 1 if on ground
 	ld [hl], 0
 	dec l
 	dec l
 	ld [hl], $D			; C208
 	dec l
-	ld [hl], 1			; wJumpStatus
+	ld [hl], 1					; wJumpStatus
 	ld hl, wMarioAnimIndex		; animation
 	ld a, [hl]
 	and a, $F0
-	or a, $04			; flying
+	or a, $04					; flying
 	ld [hl], a
 .enemyKilled
 	ld a, SFX_STOMP
 	ld [wPlaySquareSFX], a		; stomp sound
 	ld a, [wMarioPosX]		; X pos
 	add a, -4
-	ldh [hFloatyX], a	; todo comment
+	ldh [hFloatyX], a
 	ld a, [wMarioPosY]
 	sub a, $10
 	ldh [hFloatyY], a
@@ -1199,15 +1199,15 @@ EntityCollision:: ; 84E
 	dec l
 	ld a, [wInvincibilityTimer]
 	and a
-	jr nz, .jmp_974			; try to kill enemy?
+	jr nz, .killEnemy			; try to kill enemy?
 	ldh a, [hSuperStatus]
 	cp a, 3
 	jr nc, .out				; if superstatus is 4 (or more?), Mario has some
-	call Call_2A44			; i-frames
+	call EnemyHitFromTheSide			; i-frames
 	and a
 	jr z, .out
 	ldh a, [hSuperStatus]
-	and a       ; mario small
+	and a       			; mario small
 	jr nz, .injureAndOut
 	call KillMario
 .out
@@ -1224,7 +1224,7 @@ EntityCollision:: ; 84E
 	call InjureMario
 	jr .out
 
-.jmp_974
+.killEnemy
 	call Call_2B06			; like 2AXX calls, a lookup into tables
 	and a					; between $3000 and $4000
 	jr z, .out
@@ -1246,7 +1246,7 @@ EntityCollision:: ; 84E
 	jr nz, .becomeSuper		; the flower, it functions like a mushroom
 	ldh [hSuperballMario], a
 .playPowerUpSound
-	ld a, 4
+	ld a, SFX_GROW
 	ld [wPlaySquareSFX], a
 .spawn1000ScoreFloaty
 	ld a, $10
@@ -1254,10 +1254,10 @@ EntityCollision:: ; 84E
 .positionFloaty
 	ld a, [wMarioPosX]
 	add a, -4
-	ldh [hFloatyX], a		; todo comment
+	ldh [hFloatyX], a
 	ld a, [wMarioPosY]
 	sub a, 16
-	ldh [hFloatyY], a			; Y position of floaty number
+	ldh [hFloatyY], a		; Y position of floaty number
 	dec l
 	dec l
 	dec l
@@ -1279,14 +1279,14 @@ EntityCollision:: ; 84E
 	ld a, $F8
 	ld [wInvincibilityTimer], a
 	ld a, MUSIC_STAR
-	ld [wPlaySong], a				; Galop Infernal
+	ld [wPlaySong], a			; Galop Infernal
 	jr .spawn1000ScoreFloaty
 
 .pickup1UP
 	ld a, $FF
 	ldh [hFloatyControl], a		; 1UP floaty
 	ld a, SFX_1UP
-	ld [wPlaySquareSFX], a				; life up
+	ld [wPlaySquareSFX], a		; life up
 	ld a, 1
 	ld [wLivesEarnedLost], a
 	jr .positionFloaty
@@ -1298,7 +1298,7 @@ InjureMario:: ; 9E0
 	ldh [hSuperballMario], a
 	ld a, $50
 	ldh [hTimer], a
-	ld a, 6
+	ld a, SFX_INJURY
 	ld [wPlaySquareSFX], a			; injury music
 	ret
 
@@ -1309,18 +1309,18 @@ KillMario:: ; 9F1
 	ld a, STATE_PREPARE_DEATH	; pre dying
 	ldh [hGameState], a
 	xor a
-	ldh [hSuperballMario], a; superball capability
+	ldh [hSuperballMario], a	; superball capability
 	ldh [rTMA], a
 	ld a, MUSIC_DEATH
 	ld [wPlaySong], a			; sound effect
-	ld a, SPRITE_HIDDEN             ; make mario invisible
+	ld a, SPRITE_HIDDEN         ; make mario invisible
 	ld [wMarioVisible], a
 	ld a, [wMarioPosY]			; Mario Y pos
-	ld [wMarioDeathY], a			; death Y pos?
+	ld [wMarioDeathY], a		; death Y pos?
 	ret
 
 ; called when a hit is detected on an enemy?
-Call_A10::
+EnemyHit::
 	push hl
 	push de
 	ldh a, [$FF9B]			; enemy... health?
@@ -1338,13 +1338,14 @@ Call_A10::
 	pop hl
 	ret
 
+; enemy health data?
 Data_A29::
 ; corresponding top nibbles
 ;      0-3  4-7  8-B  C-F
 	db $01, $04, $08, $50
 
 ; called when Mario hits a bouncing block, to hit the enemy above it
-Call_A2D:: ; A2D
+ProcessMarioHitBouncingBlock:: ; A2D
 	ldh a, [$FFEE]
 	and a
 	ret z
@@ -1374,13 +1375,13 @@ Call_A2D:: ; A2D
 	inc l
 	inc l				; D1xC, health?
 	ld a, [hl]
-	ldh [$FF9B], a		; used in Call_A10 at least
+	ldh [$FF9B], a		; used in EnemyHit at least
 	pop hl
 	push hl
 	inc l
 	inc l
 	ld b, [hl]			; D1x2 Y pos
-	ld a, [wMarioPosY]		; player Y pos
+	ld a, [wMarioPosY]	; player Y pos
 	sub b				; Y coordinates are inverted
 	jr c, .noHit		; enemy needs to be above player
 	ld b, a
@@ -1401,7 +1402,7 @@ Call_A2D:: ; A2D
 	jr nz, .loopR
 	ld c, a				; C contains right bound of enemy
 	ld b, [hl]			; B contains left bound of enemy
-	ld a, [wMarioPosX]		; Mario X pos
+	ld a, [wMarioPosX]	; Mario X pos
 	sub a, 6			; Mario is 12 pixels wide
 	sub c
 	jr nc, .noHit		; left bound has to be smaller than right bound of enemy
@@ -1413,8 +1414,8 @@ Call_A2D:: ; A2D
 	dec l
 	dec l				; D1x0
 	push de
-	call Call_A10
-	call Call_2A23		; prepares death animation
+	call EnemyHit
+	call EnemyHitFromBelow		; prepares death animation
 	pop de
 	and a
 	jr z, .noHit
@@ -2103,7 +2104,7 @@ MarioStartsWalkingOffscreen:: ; EA9
 	and a, $0F
 	cp a, $0A			; animations >= $0A are sub or airplane
 	call c, Call_17BC
-	call Call_16F5		; animate and move mario
+	call AnimateAndMoveMario		; animate and move mario
 	ret
 
 ; preparing Fake Daisy
@@ -2181,16 +2182,16 @@ HandleWalkToFakeDaisy:: ; F33
 	ld a, PADF_RIGHT		; right button
 	ldh [hJoyHeld], a
 	call Call_17BC
-	call Call_16F5
+	call AnimateAndMoveMario
 	ld a, [wMarioPosX]
 	cp a, 76			; almost middle of screen
 	ret c
 	ld a, [wMarioAnimIndex]
 	and a, $F0
 	ld [wMarioAnimIndex], a		; mario standing still
-	ld a, [$FFE0]			; top of gate?
-	sub a, $40				; two tiles up
-	add a, 4				; four to the right
+	ld a, [$FFE0]				; top of gate?
+	sub a, $40					; two tiles up
+	add a, 4					; four to the right
 	ld b, a
 	and a, $F0
 	cp a, $C0
@@ -3151,7 +3152,7 @@ HandleGoingDownPipe:: ; 161B
 	cp [hl]
 	jr z, .toUnderground
 	inc [hl]			; Y coord increases going down
-	call Call_16F5		; animate or so
+	call AnimateAndMoveMario		; animate or so
 	ret
 .toUnderground
 	ld a, STATE_WARP_TO_UNDERGROUND
@@ -3212,7 +3213,7 @@ HandleGoingRightIntoPipe:: ; 166C
 	inc [hl]
 	ld hl, wMarioAnimFrameCounter			; how many frames a direction is held. For animation?
 	inc [hl]
-	call Call_16F5			; animate mario?
+	call AnimateAndMoveMario			; animate mario?
 	ret
 
 .toOverworld
@@ -3277,7 +3278,7 @@ HandleGoingUpOutOfPipe:: ; 16DA
 	cp [hl]
 	jr z, .outOfPipe
 	dec [hl]				; Y coordinate decrease going up
-	call Call_16F5			; animate?
+	call AnimateAndMoveMario			; animate?
 	ret
 .outOfPipe
 	xor a
@@ -3286,7 +3287,7 @@ HandleGoingUpOutOfPipe:: ; 16DA
 	ldh [hIsUnderground], a
 	ret
 
-Call_16F5:: ; 16F5 Animate mario?
+AnimateAndMoveMario:: ; 16F5 Animate mario?
 	call Call_1736
 	ld a, [wMarioOnGround]			; 1 if mario on the ground
 	and a
@@ -3337,7 +3338,7 @@ Call_1736::
 	ret
 
 ; standing on boss switch
-MarioStandingOnBossSwitch:: ; 175B
+HandleBossSwitch:: ; 175B
 	ldh a, [hGameState]
 	cp a, STATE_LOAD_MENU
 	jp nc, Call_17BC.jmp_181E
@@ -3404,7 +3405,7 @@ HandlePipeEntry:: ; 1765
 Call_17BC:: ; 17BC
 	ld hl, wJumpStatus			; jump status
 	ld a, [hl]
-	cp a, 1
+	cp a, MARIO_ASCENDING
 	ret z
 	ld hl, wMarioPosY			; Y pos
 	ld a, [hli]
@@ -3420,12 +3421,12 @@ Call_17BC:: ; 17BC
 	cp a, BLOCK_PIPE_OPENING		; standing on pipe
 	jr z, HandlePipeEntry
 	cp a, $E1				; boss switch
-	jp z, MarioStandingOnBossSwitch			; can this be a JR?
+	jp z, HandleBossSwitch	; can this be a JR?
 	cp a, $60				; solid tiles
 	jr nc, .jmp_181E		; why is this a JP? Bug?
-	ld a, [wMarioRunning]			; 02 walking, 04 running
+	ld a, [wMarioRunning]	; 02 walking, 04 running
 	ld b, 4
-	cp a, 4
+	cp a, MARIO_RUNNING
 	jr nz, .jmp_17F5
 	ld a, [wJumpStatus]			; jump status
 	and a
@@ -3498,7 +3499,7 @@ Call_17BC:: ; 17BC
 	ld [wPlaySquareSFX], a			; coin sound
 	jr .jmp_1801
 
-Jmp_185D
+Jmp_185D::
 	ld hl, wMarioPosY
 	ld a, [hl]
 	dec a
@@ -3520,7 +3521,7 @@ Jmp_185D
 	ret
 
 ; hidden block
-.jmp_187B:: ; 187B
+Jmp_187B:: ; 187B
 	ldh a, [$FFEE]
 	and a
 	ret nz
@@ -3532,7 +3533,8 @@ Jmp_185D
 	pop hl
 	and a					; if 0, don't make the hidden block appear
 	ret z					; it's from a different level screen/block
-.jmp_1888
+
+Jmp_1888::
 	ldh a, [$FFEE]
 	and a
 	ret nz
@@ -3543,15 +3545,16 @@ Jmp_185D
 	ld a, [hl]				; wait, why again?
 	pop hl
 	and a
-	jp z, .hitBreakableBlock
+	jp z, Call_198C.hitBreakableBlock
 	cp a, $F0				; nothing, just a solid grey block
-	jr z, .jmp_18C0
+	jr z, Jmp_18A4.jmp_18C0
 .jmp_189B
 	cp a, $C0				; coin block
-	jr nz, .jmp_18C7		; everything else comes out of a solid grey block
+	jr nz, Jmp_18A4.jmp_18C7		; everything else comes out of a solid grey block
 	ld a, $FF
 	ld [$C0CE], a			; timer :)
-.jmp_18A4
+
+Jmp_18A4::
 	ldh a, [$FFEE]
 	and a
 	ret nz
@@ -3565,11 +3568,11 @@ Jmp_185D
 	ldh [$FFFE], a
 	ld a, [$C0CE]
 	and a
-	jr nz, .jmp_1923
+	jr nz, Jmp_1923
 .jmp_18C0
 	ld a, $80
 	ld [wOAMBuffer + 4 * $B + 2], a
-	jr .jmp_1937
+	jr Jmp_1923.jmp_1937
 
 .jmp_18C7
 	ldh [hBoundingBoxTop], a
@@ -3627,7 +3630,7 @@ Jmp_185D
 	call Call_254D				; make it come out?
 	ret
 
-.jmp_1923
+Jmp_1923::
 	ldh a, [$FFEE]
 	and a
 	ret nz
@@ -3671,7 +3674,7 @@ Jmp_185D
 	ret
 
 ; hitting a Mystery Block
-.hitMysteryBlock:: ; 1966
+hitMysteryBlock:: ; 1966
 	ldh a, [$FFEE]
 	and a
 	ret nz
@@ -3682,7 +3685,7 @@ Jmp_185D
 	ld a, [hl]
 	pop hl
 	and a
-	jp nz, .jmp_189B
+	jp nz, Jmp_1888.jmp_189B
 	ld a, 5					; empty Mystery Block contain a single coin
 	ld [wPlaySquareSFX], a
 	ld a, $81
@@ -3692,9 +3695,9 @@ Jmp_185D
 	ldh [hFloatyY], a
 	ld a, $C0
 	ldh [hFloatyControl], a
-	jr .jmp_1937
+	jr Jmp_1923.jmp_1937
 
-.call_198C
+Call_198C::
 	ld a, [wJumpStatus]			; jump status
 	cp a, MARIO_ASCENDING		; ascending
 	ret nz
@@ -3709,7 +3712,7 @@ Jmp_185D
 	ldh [$FFAE], a
 	call LookupTile
 	cp a, $5F				; Hidden Block
-	jp z, .jmp_187B
+	jp z, Jmp_187B
 	cp a, $60
 	jr nc, .jmp_19BF
 	ldh a, [$FFAE]
@@ -3717,7 +3720,7 @@ Jmp_185D
 	ldh [$FFAE], a
 	call LookupTile
 	cp a, $5F
-	jp z, .jmp_187B
+	jp z, Jmp_187B
 	cp a, $60
 	ret c					; non solid block
 .jmp_19BF
@@ -3729,9 +3732,9 @@ Jmp_185D
 	cp a, $F4						; coin
 	jp z, .jmp_1A57
 	cp a, BLOCK_COIN				; mystery block
-	jr z, .hitMysteryBlock
+	jr z, hitMysteryBlock
 	cp a, BLOCK_BREAKABLE
-	jp z, .jmp_1888
+	jp z, Jmp_1888
 	ld a, MARIO_DESCENDING
 	ld [wJumpStatus], a
 	ld a, SFX_BUMP
@@ -3746,10 +3749,10 @@ Jmp_185D
 	ld a, [hl]
 	pop hl
 	cp a, $C0
-	jp z, .jmp_18A4
+	jp z, Jmp_18A4
 	ldh a, [hSuperStatus]
 	cp a, 2
-	jp nz, .jmp_1923
+	jp nz, Jmp_1923
 	push hl
 	pop de
 	ld hl, $FFEE
@@ -3773,7 +3776,7 @@ Jmp_185D
 	ld [hl], a
 	inc l					; C2x2 X
 	ld a, [wMarioPosX]
-	add a, $2
+	add a, 2
 	ld [hl], a
 	inc l					; C2x3
 	inc l                   ; C2x4
@@ -3805,7 +3808,7 @@ Jmp_185D
 	ld [wPlayNoiseSFX], a			; breaking block sound effect
 	ld de, $0050
 	call AddScore
-	ld a, 2
+	ld a, MARIO_DESCENDING
 	ld [wJumpStatus], a
 	ret
 
@@ -4419,7 +4422,7 @@ MoveMario::
 	ld hl, hScrollX
 	add [hl]			; scroll screen if Mario is in the middle
 	ld [hl], a
-	call .call_1EA4		; shift sprites
+	call .shiftSprites		; shift sprites
 	call ScrollEnemiesByB
 	ld hl, wOAMBuffer + 1	; projectile X positions
 	ld de, $0004			; 4 bytes per object
@@ -4515,8 +4518,8 @@ MoveMario::
 	dec [hl]
 	ret
 
-; subtract B from X coord of objects 0x0C to 0x14?
-.call_1EA4
+; subtract B from X coord of objects $0C to $14?
+.shiftSprites
 	ld hl, wOAMBuffer + $C * 4 + 1
 	ld de, $0004
 	ld c, 8
@@ -4536,9 +4539,9 @@ DetermineWalkingSpeed
 	ld a, [wMarioRunning]		; 02 walking 04 running
 	ld e, a
 	ld d, 0
-	ld a, [wC20F]		; 01 standing still, flips between 1 and 0 walking
+	ld a, [wIsMarioMoving]		; 01 standing still, flips between 1 and 0 walking
 	xor a, 1
-	ld [wC20F], a
+	ld [wIsMarioMoving], a
 	add e
 	ld e, a
 	add hl, de
@@ -4829,7 +4832,7 @@ Call_200A::
 	dec l
 	dec l
 	dec l
-	call Call_A10
+	call EnemyHit
 	push de
 	ldh a, [hGameState]
 	cp a, $0D
@@ -5356,7 +5359,7 @@ HandleAutoScrollLevel::
     ld a, [$D007]
     and a
     call nz, MarioWins
-    call EntityCollision
+    call PlayerEntityCollision
     call Call_01_4FEC
     call Call_01_5118
     ldh a, [hActiveRomBank]
@@ -5547,7 +5550,7 @@ SpawnEnemies:: ; 249B
 	jr SpawnEnemies
 
 ; enemy launches projectile?
-Call_24D6:: ; 24D6
+EnemyFiresProjectile:: ; 24D6
 	ld a, [wCommandArgument]
 	ldh [$FFC0], a
 	cp a, $FF
@@ -5951,11 +5954,11 @@ Call_2648:: ; 2648
 	ldh [hMarioState], a		; and OR it into FFC5
 .checkBit6
 	ld a, [wCommandArgument]
-	bit 6, a			; Same but for X
+	bit 6, a				; Same but for X
 	jr z, .checkBits2And3
 	ld a, [wMarioPosX]		; Mario X
 	ld c, a
-	ldh a, [$FFC3]		; Enemy X
+	ldh a, [$FFC3]			; Enemy X
 	ld b, a
 	ldh a, [$FFCA]
 	and a, $70			; width in tiles, times 16
@@ -6011,7 +6014,7 @@ Call_2648:: ; 2648
 	jr nz, .checkF2
 	ld a, $0A			; Temporarily store the current buffer
 	call CopyBufferToEnemySlot
-	call Call_24D6		; Overwrite current buffer. This makes sure the projectile
+	call EnemyFiresProjectile		; Overwrite current buffer. This makes sure the projectile
 	ld a, $0A			; is spawned at the location of the enemy firing it
 	call CopyEnemySlotToBuffer
 	pop hl
@@ -6070,7 +6073,7 @@ Call_2648:: ; 2648
 .checkF6
 	cp a, $F6			; F6 - Halt until Mario is close
 	jr nz, .checkF7
-	ld a, [wMarioPosX]		; Mario X
+	ld a, [wMarioPosX]	; Mario X
 	ld b, a
 	ldh a, [$FFC3]		; enemy X
 	sub b
@@ -6101,7 +6104,7 @@ Call_2648:: ; 2648
 	ret
 
 .checkF9
-	cp a, $F9			; F9 - Sound effect
+	cp a, $F9					; F9 - Sound effect
 	jr nz, .checkFA
 	ld a, [wCommandArgument]
 	ld [wPlayNoiseSFX], a		; sound effect
@@ -6109,7 +6112,7 @@ Call_2648:: ; 2648
 	ret
 
 .checkFA
-	cp a, $FA			; FA - Sound effect
+	cp a, $FA					; FA - Sound effect
 	jr nz, .checkFB
 	ld a, [wCommandArgument]
 	ld [wPlaySquareSFX], a		; sound effect
@@ -6420,7 +6423,7 @@ StombEnemy:: ; 2A01
 	ret
 
 ; enemy hit from down under
-Call_2A23:: ; 2A23
+EnemyHitFromBelow:: ; 2A23
 	push hl
 	ld a, [hl]
 	ld e, a
@@ -6445,7 +6448,7 @@ Call_2A23:: ; 2A23
 	ret
 
 ; called when an enemy hits us on the side?
-Call_2A44:: ; 2A44
+EnemyHitFromTheSide:: ; 2A44
 	push hl
 	ld a, [hl]
 	ld e, a
@@ -7115,60 +7118,210 @@ Data_30B4:: ; 30B4
     db $C3, $2E
 
 ; 0x63 entries of 5 bytes
-Data_3186::; 3186
-    db $01, $11, $FF, $11, $11, $00, $00, $00, $00, $00, $00, $00, $FF, $FF, $FF, $00
-    db $00, $00, $00, $00, $05, $12, $FF, $12, $12, $00, $00, $00, $00, $00, $00, $00
-    db $FF, $00, $00, $00, $00, $00, $00, $00, $00, $00, $FF, $4F, $4F, $FF, $FF, $FF
-    db $FF, $FF, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $FF, $00
-    db $00, $00, $00, $00, $00, $00, $0F, $15, $FF, $15, $15, $00, $00, $00, $00, $00
-    db $FF, $00, $FF, $00, $27, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $14
-    db $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $1C, $19
-    db $FF, $19, $19, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $00, $00, $00
-    db $00, $00, $00, $00, $FF, $00, $4F, $00, $00, $00, $00, $00, $00, $00, $00, $00
-    db $00, $00, $00, $FF, $00, $27, $00, $00, $FF, $00, $00, $00, $00, $FF, $00, $00
-    db $FF, $00, $FF, $21, $21, $00, $00, $00, $00, $00, $00, $00, $FF, $00, $00, $00
-    db $00, $FF, $00, $00, $FF, $00, $FF, $00, $27, $1C, $19, $FF, $19, $19, $00, $00
-    db $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $28, $00
-    db $00, $00, $00, $00, $00, $00, $00, $00, $2A, $00, $00, $00, $00, $00, $00, $00
-    db $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $FF, $27, $27
-    db $00, $00, $FF, $27, $27, $40, $41, $FF, $41, $41, $00, $00, $FF, $4F, $4F, $00
-    db $00, $FF, $00, $00, $00, $00, $00, $00, $00, $00, $00, $FF, $00, $00, $37, $00
-    db $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00
-    db $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $3D, $3E, $FF, $3E
-    db $3E, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $40, $41, $FF, $41, $41
-    db $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $43, $44, $FF, $44, $44, $00
-    db $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $FF, $00, $00, $00, $00
-    db $FF, $00, $00, $00, $00, $FF, $00, $00, $00, $00, $FF, $00, $00, $00, $00, $00
-    db $00, $00, $00, $00, $00, $00, $00, $0D, $0D, $FF, $00, $0D, $4D, $00, $00, $00
-    db $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00
-    db $00, $00, $00, $00, $00, $00, $00, $FF, $00, $00, $FF, $FF, $FF, $FF, $27, $FF
-    db $FF, $FF, $FF, $27, $00, $00, $FF, $00, $00, $00, $00, $FF, $FF, $FF, $57, $15
-    db $FF, $15, $15, $00, $00, $00, $00, $00, $00, $00, $FF, $00, $00, $FF, $FF, $FF
-    db $FF, $27, $00, $00, $FF, $00, $00, $00, $00, $00, $00, $00, $00, $00, $FF, $00
-    db $FF, $00, $00, $FF, $00, $FF, $00, $00, $FF, $00, $FF, $00, $00, $FF, $00, $FF
-    db $00, $00, $FF, $00, $4F, $00, $00, $FF, $00, $62, $00, $00, $00, $00, $00
+Data_3186::
+    db   $01, $11, $FF, $11, $11                  ; $3186
+    db   $00, $00, $00, $00, $00                  ; $318B
+    db   $00, $00, $FF, $FF, $FF                  ; $3190
+    db   $00, $00, $00, $00, $00                  ; $3195
+    db   $05, $12, $FF, $12, $12                  ; $319A
+    db   $00, $00, $00, $00, $00                  ; $319F
+    db   $00, $00, $FF, $00, $00                  ; $31A4
+    db   $00, $00, $00, $00, $00                  ; $31A9
+    db   $00, $00, $FF, $4F, $4F                  ; $31AE
+    db   $FF, $FF, $FF, $FF, $FF                  ; $31B3
+    db   $00, $00, $00, $00, $00                  ; $31B8
+    db   $00, $00, $00, $00, $00                  ; $31BD
+    db   $00, $00, $FF, $00, $00                  ; $31C2
+    db   $00, $00, $00, $00, $00                  ; $31C7
+    db   $0F, $15, $FF, $15, $15                  ; $31CC
+    db   $00, $00, $00, $00, $00                  ; $31D1
+    db   $FF, $00, $FF, $00, $27                  ; $31D6
+    db   $00, $00, $00, $00, $00                  ; $31DB
+    db   $00, $00, $00, $00, $00                  ; $31E0
+    db   $14, $00, $00, $00, $00                  ; $31E5
+    db   $00, $00, $00, $00, $00                  ; $31EA
+    db   $00, $00, $00, $00, $00                  ; $31EF
+    db   $1C, $19, $FF, $19, $19                  ; $31F4
+    db   $FF, $FF, $FF, $FF, $FF                  ; $31F9
+    db   $FF, $FF, $FF, $FF, $FF                  ; $31FE
+    db   $00, $00, $00, $00, $00                  ; $3203
+    db   $00, $00, $FF, $00, $4F                  ; $3208
+    db   $00, $00, $00, $00, $00                  ; $320D
+    db   $00, $00, $00, $00, $00                  ; $3212
+    db   $00, $00, $FF, $00, $27                  ; $3217
+    db   $00, $00, $FF, $00, $00                  ; $321C
+    db   $00, $00, $FF, $00, $00                  ; $3221
+    db   $FF, $00, $FF, $21, $21                  ; $3226
+    db   $00, $00, $00, $00, $00                  ; $322B
+    db   $00, $00, $FF, $00, $00                  ; $3230
+    db   $00, $00, $FF, $00, $00                  ; $3235
+    db   $FF, $00, $FF, $00, $27                  ; $323A
+    db   $1C, $19, $FF, $19, $19                  ; $323F
+    db   $00, $00, $00, $00, $00                  ; $3244
+    db   $00, $00, $00, $00, $00                  ; $3249
+    db   $00, $00, $00, $00, $00                  ; $324E
+    db   $00, $28, $00, $00, $00                  ; $3253
+    db   $00, $00, $00, $00, $00                  ; $3258
+    db   $00, $2A, $00, $00, $00                  ; $325D
+    db   $00, $00, $00, $00, $00                  ; $3262
+    db   $00, $00, $00, $00, $00                  ; $3267
+    db   $00, $00, $00, $00, $00                  ; $326C
+    db   $00, $00, $FF, $27, $27                  ; $3271
+    db   $00, $00, $FF, $27, $27                  ; $3276
+    db   $40, $41, $FF, $41, $41                  ; $327B
+    db   $00, $00, $FF, $4F, $4F                  ; $3280
+    db   $00, $00, $FF, $00, $00                  ; $3285
+    db   $00, $00, $00, $00, $00                  ; $328A
+    db   $00, $00, $FF, $00, $00                  ; $328F
+    db   $37, $00, $00, $00, $00                  ; $3294
+    db   $00, $00, $00, $00, $00                  ; $3299
+    db   $00, $00, $00, $00, $00                  ; $329E
+    db   $00, $00, $00, $00, $00                  ; $32A3
+    db   $00, $00, $00, $00, $00                  ; $32A8
+    db   $00, $00, $00, $00, $00                  ; $32AD
+    db   $3D, $3E, $FF, $3E, $3E                  ; $32B2
+    db   $00, $00, $00, $00, $00                  ; $32B7
+    db   $00, $00, $00, $00, $00                  ; $32BC
+    db   $40, $41, $FF, $41, $41                  ; $32C1
+    db   $00, $00, $00, $00, $00                  ; $32C6
+    db   $00, $00, $00, $00, $00                  ; $32CB
+    db   $43, $44, $FF, $44, $44                  ; $32D0
+    db   $00, $00, $00, $00, $00                  ; $32D5
+    db   $00, $00, $00, $00, $00                  ; $32DA
+    db   $00, $00, $FF, $00, $00                  ; $32DF
+    db   $00, $00, $FF, $00, $00                  ; $32E4
+    db   $00, $00, $FF, $00, $00                  ; $32E9
+    db   $00, $00, $FF, $00, $00                  ; $32EE
+    db   $00, $00, $00, $00, $00                  ; $32F3
+    db   $00, $00, $00, $00, $00                  ; $32F8
+    db   $0D, $0D, $FF, $00, $0D                  ; $32FD
+    db   $4D, $00, $00, $00, $00                  ; $3302
+    db   $00, $00, $00, $00, $00                  ; $3307
+    db   $00, $00, $00, $00, $00                  ; $330C
+    db   $00, $00, $00, $00, $00                  ; $3311
+    db   $00, $00, $00, $00, $00                  ; $3316
+    db   $00, $00, $FF, $00, $00                  ; $331B
+    db   $FF, $FF, $FF, $FF, $27                  ; $3320
+    db   $FF, $FF, $FF, $FF, $27                  ; $3325
+    db   $00, $00, $FF, $00, $00                  ; $332A
+    db   $00, $00, $FF, $FF, $FF                  ; $332F
+    db   $57, $15, $FF, $15, $15                  ; $3334
+    db   $00, $00, $00, $00, $00                  ; $3339
+    db   $00, $00, $FF, $00, $00                  ; $333E
+    db   $FF, $FF, $FF, $FF, $27                  ; $3343
+    db   $00, $00, $FF, $00, $00                  ; $3348
+    db   $00, $00, $00, $00, $00                  ; $334D
+    db   $00, $00, $FF, $00, $FF                  ; $3352
+    db   $00, $00, $FF, $00, $FF                  ; $3357
+    db   $00, $00, $FF, $00, $FF                  ; $335C
+    db   $00, $00, $FF, $00, $FF                  ; $3361
+    db   $00, $00, $FF, $00, $4F                  ; $3366
+    db   $00, $00, $FF, $00, $62                  ; $336B
+    db   $00, $00, $00, $00, $00                  ; $3370
 
 ; 0x63 entries of 3 bytes
-Data_3375:: ; 3375
-    db $06, $11, $00, $02, $11, $00, $01, $11, $00, $00, $11, $00, $07, $11, $00, $02
-    db $11, $00, $00, $22, $00, $00, $91, $00, $09, $33, $C4, $07, $22, $81, $00, $B1
-    db $00, $00, $B1, $00, $00, $A1, $00, $00, $00, $00, $34, $22, $41, $02, $21, $00
-    db $00, $12, $00, $00, $11, $00, $00, $11, $00, $00, $91, $00, $08, $91, $00, $00
-    db $21, $00, $07, $22, $40, $00, $21, $00, $00, $21, $00, $00, $22, $00, $50, $24
-    db $D3, $00, $21, $00, $02, $21, $00, $00, $22, $41, $00, $21, $00, $00, $11, $00
-    db $00, $22, $82, $00, $22, $00, $00, $11, $00, $00, $11, $00, $00, $22, $41, $E0
-    db $22, $41, $00, $11, $00, $00, $22, $00, $24, $11, $00, $06, $11, $00, $24, $11
-    db $00, $06, $11, $00, $04, $11, $00, $00, $11, $00, $00, $11, $00, $00, $21, $00
-    db $00, $21, $00, $06, $22, $40, $00, $23, $C9, $00, $A2, $00, $0C, $11, $00, $00
-    db $91, $00, $00, $91, $00, $00, $91, $00, $00, $B1, $00, $00, $B1, $00, $00, $A1
-    db $00, $00, $A1, $00, $30, $12, $82, $02, $11, $00, $00, $11, $00, $00, $22, $80
-    db $02, $21, $00, $00, $21, $00, $00, $22, $80, $02, $21, $00, $00, $21, $00, $00
-    db $12, $00, $00, $22, $00, $34, $A2, $00, $54, $22, $FF, $00, $92, $00, $00, $11
-    db $00, $00, $11, $40, $00, $91, $00, $00, $91, $00, $00, $91, $00, $00, $22, $00
-    db $00, $11, $00, $00, $11, $00, $00, $22, $40, $00, $22, $40, $00, $11, $00, $00
-    db $11, $40, $B4, $22, $81, $02, $21, $00, $00, $11, $00, $00, $11, $89, $00, $11
-    db $00, $00, $43, $C0, $00, $11, $32, $00, $11, $02, $00, $11, $05, $00, $11, $02
-    db $00, $43, $D8, $54, $32, $D3, $54, $22, $00
+; might be
+; flags, dimension, health
+Data_3375::
+    db   $06, $11, $00                            ; $3375
+    db   $02, $11, $00                            ; $3378
+    db   $01, $11, $00                            ; $337B
+    db   $00, $11, $00                            ; $337E
+    db   $07, $11, $00                            ; $3381
+    db   $02, $11, $00                            ; $3384
+    db   $00, $22, $00                            ; $3387
+    db   $00, $91, $00                            ; $338A
+    db   $09, $33, $C4                            ; $338D
+    db   $07, $22, $81                            ; $3390
+    db   $00, $B1, $00                            ; $3393
+    db   $00, $B1, $00                            ; $3396
+    db   $00, $A1, $00                            ; $3399
+    db   $00, $00, $00                            ; $339C
+    db   $34, $22, $41                            ; $339F
+    db   $02, $21, $00                            ; $33A2
+    db   $00, $12, $00                            ; $33A5
+    db   $00, $11, $00                            ; $33A8
+    db   $00, $11, $00                            ; $33AB
+    db   $00, $91, $00                            ; $33AE
+    db   $08, $91, $00                            ; $33B1
+    db   $00, $21, $00                            ; $33B4
+    db   $07, $22, $40                            ; $33B7
+    db   $00, $21, $00                            ; $33BA
+    db   $00, $21, $00                            ; $33BD
+    db   $00, $22, $00                            ; $33C0
+    db   $50, $24, $D3                            ; $33C3
+    db   $00, $21, $00                            ; $33C6
+    db   $02, $21, $00                            ; $33C9
+    db   $00, $22, $41                            ; $33CC
+    db   $00, $21, $00                            ; $33CF
+    db   $00, $11, $00                            ; $33D2
+    db   $00, $22, $82                            ; $33D5
+    db   $00, $22, $00                            ; $33D8
+    db   $00, $11, $00                            ; $33DB
+    db   $00, $11, $00                            ; $33DE
+    db   $00, $22, $41                            ; $33E1
+    db   $E0, $22, $41                            ; $33E4
+    db   $00, $11, $00                            ; $33E7
+    db   $00, $22, $00                            ; $33EA
+    db   $24, $11, $00                            ; $33ED
+    db   $06, $11, $00                            ; $33F0
+    db   $24, $11, $00                            ; $33F3
+    db   $06, $11, $00                            ; $33F6
+    db   $04, $11, $00                            ; $33F9
+    db   $00, $11, $00                            ; $33FC
+    db   $00, $11, $00                            ; $33FF
+    db   $00, $21, $00                            ; $3402
+    db   $00, $21, $00                            ; $3405
+    db   $06, $22, $40                            ; $3408
+    db   $00, $23, $C9                            ; $340B
+    db   $00, $A2, $00                            ; $340E
+    db   $0C, $11, $00                            ; $3411
+    db   $00, $91, $00                            ; $3414
+    db   $00, $91, $00                            ; $3417
+    db   $00, $91, $00                            ; $341A
+    db   $00, $B1, $00                            ; $341D
+    db   $00, $B1, $00                            ; $3420
+    db   $00, $A1, $00                            ; $3423
+    db   $00, $A1, $00                            ; $3426
+    db   $30, $12, $82                            ; $3429
+    db   $02, $11, $00                            ; $342C
+    db   $00, $11, $00                            ; $342F
+    db   $00, $22, $80                            ; $3432
+    db   $02, $21, $00                            ; $3435
+    db   $00, $21, $00                            ; $3438
+    db   $00, $22, $80                            ; $343B
+    db   $02, $21, $00                            ; $343E
+    db   $00, $21, $00                            ; $3441
+    db   $00, $12, $00                            ; $3444
+    db   $00, $22, $00                            ; $3447
+    db   $34, $A2, $00                            ; $344A
+    db   $54, $22, $FF                            ; $344D
+    db   $00, $92, $00                            ; $3450
+    db   $00, $11, $00                            ; $3453
+    db   $00, $11, $40                            ; $3456
+    db   $00, $91, $00                            ; $3459
+    db   $00, $91, $00                            ; $345C
+    db   $00, $91, $00                            ; $345F
+    db   $00, $22, $00                            ; $3462
+    db   $00, $11, $00                            ; $3465
+    db   $00, $11, $00                            ; $3468
+    db   $00, $22, $40                            ; $346B
+    db   $00, $22, $40                            ; $346E
+    db   $00, $11, $00                            ; $3471
+    db   $00, $11, $40                            ; $3474
+    db   $B4, $22, $81                            ; $3477
+    db   $02, $21, $00                            ; $347A
+    db   $00, $11, $00                            ; $347D
+    db   $00, $11, $89                            ; $3480
+    db   $00, $11, $00                            ; $3483
+    db   $00, $43, $C0                            ; $3486
+    db   $00, $11, $32                            ; $3489
+    db   $00, $11, $02                            ; $348C
+    db   $00, $11, $05                            ; $348F
+    db   $00, $11, $02                            ; $3492
+    db   $00, $43, $D8                            ; $3495
+    db   $54, $32, $D3                            ; $3498
+    db   $54, $22, $00                            ; $349B
 
 ; 0x63 pointers to Data_3564
 Data_349E:: ; 349E
@@ -7315,14 +7468,14 @@ Data_3564:: ; 3564
     db $F8, $1F, $FC, $A8, $F3, $5B
 
 ; called at level start, is some sort of init
-Call_3D1A; 3D1A
+InitLevel:: ; 3D1A
 	ld hl, wOAMBuffer + $30	; TODO ? wOAMBuffer + $30 ? used for "dynamic" sprites?
 	ld b, $20
 	xor a
-.jmp_3D20
+.oamLoop
 	ld [hli], a
 	dec b
-	jr nz, .jmp_3D20
+	jr nz, .oamLoop
 	ld hl, wGameTimer
 	ld a, $28		; 40 frames per time unit
 	ld [hli], a		; DA00 - Time hundredths	

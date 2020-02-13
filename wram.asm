@@ -128,7 +128,7 @@ wMarioWalkingDir:: ; C20D
 wMarioRunning:: ; C20E
 	ds 1
 
-wC20F:: ; C20F
+wIsMarioMoving:: ; C20F
 	ds 1
 
 wEntityVisible:: ; C210

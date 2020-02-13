@@ -1,4 +1,5 @@
 INCLUDE "hardware.inc"
+INCLUDE "constants.asm"
 INCLUDE "sound_constants.asm"
 INCLUDE "hram.asm"
 
@@ -332,12 +333,12 @@ Call_03_4966::
 
     ld a, [wMarioMomentum]                        ; $497A: $FA $0C $C2
     cp $03                                        ; $497D: $FE $03
-    ld a, $02                                     ; $497F: $3E $02
-    jr c, .jr_003_4985                             ; $4981: $38 $02
+    ld a, MARIO_WALKING                                     ; $497F: $3E $02
+    jr c, .setMarioRunning                             ; $4981: $38 $02
 
-    ld a, $04                                     ; $4983: $3E $04
+    ld a, MARIO_RUNNING                                     ; $4983: $3E $04
 
-.jr_003_4985
+.setMarioRunning
     ld [wMarioRunning], a                         ; $4985: $EA $0E $C2
 
 .jr_003_4988
@@ -346,22 +347,22 @@ Call_03_4966::
 
 Call_03_498B::
     ldh a, [hGameState]                                  ; $498B: $F0 $B3
-    cp $0D                                        ; $498D: $FE $0D
+    cp STATE_AUTOSCROLL_LEVEL                                        ; $498D: $FE $0D
     jp z, Jump_003_4A7F                           ; $498F: $CA $7F $4A
 
     ld de, wJumpStatus                            ; $4992: $11 $07 $C2
     ldh a, [hJoyPressed]                                  ; $4995: $F0 $81
     ld b, a                                       ; $4997: $47
     ldh a, [hJoyHeld]                                  ; $4998: $F0 $80
-    bit 1, a                                      ; $499A: $CB $4F
+    bit PADB_B, a                                      ; $499A: $CB $4F
     jr nz, Call_03_4966.jr_003_4975                            ; $499C: $20 $D7
 
     push af                                       ; $499E: $F5
     ld a, [wMarioRunning]                         ; $499F: $FA $0E $C2
-    cp $04                                        ; $49A2: $FE $04
+    cp MARIO_RUNNING                                        ; $49A2: $FE $04
     jr nz, .jr_003_49AB                            ; $49A4: $20 $05
 
-    ld a, $02                                     ; $49A6: $3E $02
+    ld a, MARIO_WALKING                                     ; $49A6: $3E $02
     ld [wMarioRunning], a                         ; $49A8: $EA $0E $C2
 
 .jr_003_49AB
@@ -409,10 +410,10 @@ Call_03_498B::
     or $04                                        ; $49DB: $F6 $04
     ld [hl], a                                    ; $49DD: $77
     ld a, [wMarioRunning]                         ; $49DE: $FA $0E $C2
-    cp $04                                        ; $49E1: $FE $04
+    cp MARIO_RUNNING                                        ; $49E1: $FE $04
     jr z, jr_003_49ED                             ; $49E3: $28 $08
 
-    ld a, $02                                     ; $49E5: $3E $02
+    ld a, MARIO_WALKING                                     ; $49E5: $3E $02
     ld [wMarioRunning], a                         ; $49E7: $EA $0E $C2
     ld [wC208], a                                 ; $49EA: $EA $08 $C2
 
@@ -422,7 +423,7 @@ jr_003_49ED:
 
 jr_003_49F2:
     ld hl, wPlaySquareSFX                         ; $49F2: $21 $E0 $DF
-    ld [hl], $01                                  ; $49F5: $36 $01
+    ld [hl], SFX_JUMP                                  ; $49F5: $36 $01
     ld a, $01                                     ; $49F7: $3E $01
     ld [de], a                                    ; $49F9: $12
     pop hl                                        ; $49FA: $E1
@@ -443,7 +444,7 @@ jr_003_49FD:
 Jump_003_4A0C:
 jr_003_4A0C:
     ldh a, [hGameState]                                  ; $4A0C: $F0 $B3
-    cp $0D                                        ; $4A0E: $FE $0D
+    cp STATE_AUTOSCROLL_LEVEL                                        ; $4A0E: $FE $0D
     ld b, $03                                     ; $4A10: $06 $03
     jr z, jr_003_4A1A                             ; $4A12: $28 $06
 
@@ -451,14 +452,13 @@ jr_003_4A0C:
     and a                                         ; $4A16: $A7
     ret z                                         ; $4A17: $C8
 
-    ld b, $01                                     ; $4A18: $06 $01
-
+    ld b, 1                                     ; $4A18: $06 $01
 jr_003_4A1A:
     ld hl, $FFA9                                  ; $4A1A: $21 $A9 $FF
     ld de, wOAMBuffer                             ; $4A1D: $11 $00 $C0
 
-jr_003_4A20:
-    ldi a, [hl]                                   ; $4A20: $2A
+.loop
+    ld a, [hli]                                   ; $4A20: $2A
     and a                                         ; $4A21: $A7
     jr z, jr_003_4A2C                             ; $4A22: $28 $08
 
@@ -467,17 +467,16 @@ jr_003_4A20:
     inc e                                         ; $4A26: $1C
     inc e                                         ; $4A27: $1C
     dec b                                         ; $4A28: $05
-    jr nz, jr_003_4A20                            ; $4A29: $20 $F5
+    jr nz, .loop 		                          ; $4A29: $20 $F5
 
     ret                                           ; $4A2B: $C9
-
 
 jr_003_4A2C:
     push hl                                       ; $4A2C: $E5
     ld hl, wMarioFacingDir                        ; $4A2D: $21 $05 $C2
     ld b, [hl]                                    ; $4A30: $46
     ld hl, wMarioPosY                             ; $4A31: $21 $01 $C2
-    ldi a, [hl]                                   ; $4A34: $2A
+    ld a, [hli]                                   ; $4A34: $2A
     add $FE                                       ; $4A35: $C6 $FE
     ld [de], a                                    ; $4A37: $12
     inc e                                         ; $4A38: $1C
@@ -488,7 +487,7 @@ jr_003_4A2C:
     ld c, $F8                                     ; $4A3F: $0E $F8
 
 jr_003_4A41:
-    ldi a, [hl]                                   ; $4A41: $2A
+    ld a, [hli]                                   ; $4A41: $2A
     add c                                         ; $4A42: $81
     ld [de], a                                    ; $4A43: $12
     ld c, $60                                     ; $4A44: $0E $60
@@ -534,14 +533,14 @@ Jump_003_4A77:
     ld [hl], $20                                  ; $4A7A: $36 $20
     jp Call_03_498B.Jump_003_49BA                              ; $4A7C: $C3 $BA $49
 
-
+; called in autoscroll levels?
 Jump_003_4A7F:
     ldh a, [hJoyPressed]                                  ; $4A7F: $F0 $81
     and $03                                       ; $4A81: $E6 $03
     jr nz, jr_003_4A0C                            ; $4A83: $20 $87
 
     ldh a, [hJoyHeld]                                  ; $4A85: $F0 $80
-    bit 0, a                                      ; $4A87: $CB $47
+    bit PADB_A, a                                      ; $4A87: $CB $47
     ret z                                         ; $4A89: $C8
 
     ld hl, $C0AE                                  ; $4A8A: $21 $AE $C0
@@ -584,7 +583,7 @@ Call_03_4A94::
     ld d, $00                                     ; $4ABB: $16 $00
     ld e, a                                       ; $4ABD: $5F
     add hl, de                                    ; $4ABE: $19
-    ldi a, [hl]                                   ; $4ABF: $2A
+    ld a, [hli]                                   ; $4ABF: $2A
     cp $FF                                        ; $4AC0: $FE $FF
     jr z, .jr_003_4ADE                             ; $4AC2: $28 $1A
 
@@ -704,7 +703,7 @@ Call_03_4B3C::
     ld b, a                                       ; $4B46: $47
     ldh a, [$FFF2]                                  ; $4B47: $F0 $F2
     sub b                                         ; $4B49: $90
-    ldd [hl], a                                   ; $4B4A: $32
+    ld [hld], a                                   ; $4B4A: $32
     ld a, [wMarioPosY]                            ; $4B4B: $FA $01 $C2
     sub $0B                                       ; $4B4E: $D6 $0B
     ld [hl], a                                    ; $4B50: $77
@@ -825,7 +824,7 @@ jr_003_4BE0:
     ret nz                                        ; $4BE7: $C0
 
     ld a, [wMarioVisible]                         ; $4BE8: $FA $00 $C2
-    xor $80                                       ; $4BEB: $EE $80
+    xor SPRITE_HIDDEN                                       ; $4BEB: $EE $80
     ld [wMarioVisible], a                         ; $4BED: $EA $00 $C2
     ret                                           ; $4BF0: $C9
 
@@ -856,7 +855,7 @@ jr_003_4BF1:
     ld d, $00                                     ; $4C15: $16 $00
     add hl, de                                    ; $4C17: $19
     ld a, [$C0DA]                                 ; $4C18: $FA $DA $C0
-    ldi [hl], a                                   ; $4C1B: $22
+    ld [hli], a                                   ; $4C1B: $22
     ld a, [$C0D8]                                 ; $4C1C: $FA $D8 $C0
     ld [hl], a                                    ; $4C1F: $77
     inc e                                         ; $4C20: $1C
@@ -1455,6 +1454,7 @@ Data_4C37::
 SECTION "bank 3 levels", ROMX[$503F], BANK[3]
 INCBIN "baserom.gb", $D03F, $6600 - $503F
 
+SECTION "bank 3 sound", ROMX[$6600], BANK[3]
 
 StartSquareSoundTable::
 	dw StartJumpSFX

@@ -1247,6 +1247,7 @@ INCBIN "baserom.gb", $9F15, $6002 - $5F15
 SECTION "bank 2 levels", ROMX[$6190], BANK[2]
 INCBIN "baserom.gb", $A190, $791A - $6190
 
+;SECTION "menu tiles", ROMX[$791A], BANK[2]
 MenuTiles1::
 INCBIN "gfx/menuTiles1.2bpp"
 MenuTiles1End:
