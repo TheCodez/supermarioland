@@ -315,7 +315,7 @@ Call_001_50CC:
 Call_01_5118::
     ld b, $03                                     ; $5118: $06 $03
     ld hl, $FFA9                                  ; $511A: $21 $A9 $FF
-    ld de, $C001                                  ; $511D: $11 $01 $C0
+    ld de, wOAMBuffer + 1                         ; $511D: $11 $01 $C0
 
 .jr_001_5120
     ld a, [hli]                                   ; $5120: $2A

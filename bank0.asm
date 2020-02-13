@@ -734,7 +734,7 @@ PrepareHUD::
 	jr nz, .loop
 	ret
 
-; Normal gameplay. Tons of function calls, let's do this later...
+; Normal gameplay.
 HandleGamePlay::	; 627
     call LoadColumns
     call EntityCollision
@@ -769,7 +769,7 @@ HandleGamePlay::	; 627
     ldh a, [hSavedRomBank]
     ldh [hActiveRomBank], a
     ld [MBC1RomBank], a
-    call Call_1F2D
+    call ProcessSuperBalls
     call Call_2491
     ldh a, [hActiveRomBank]
     ldh [hSavedRomBank], a
@@ -3052,7 +3052,7 @@ HandleTheEnd::
 	ldh a, [hTimer]
 	and a
 	ret nz
-	ld hl, $C071		; letter object X position
+	ld hl, wOAMBuffer + $70 + 1		; letter object X position
 	ld a, [hl]
 	cp a, $3C
 	jr z, .nextLetter
@@ -4421,10 +4421,10 @@ MoveMario::
 	ld [hl], a
 	call .call_1EA4		; shift sprites
 	call ScrollEnemiesByB
-	ld hl, $C001		; projectile X positions
-	ld de, $0004		; 4 bytes per object
-	ld c, 3				; 3 projectiles
-.shiftProjectiles		; todo name
+	ld hl, wOAMBuffer + 1	; projectile X positions
+	ld de, $0004			; 4 bytes per object
+	ld c, 3					; 3 projectiles
+.shiftProjectiles			
 	ld a, [hl]
 	sub b
 	ld [hl], a
@@ -4611,9 +4611,9 @@ Call_1F03:: ; 1F03
 	ret
 
 ; called every frame in non autoscroll levels
-Call_1F2D:: ; 1F2D
-	ld b, 1				; just one superball?
-	ld hl, $FFA9		; projectiles at A9, AA and AB?
+ProcessSuperBalls:: ; 1F2D
+	ld b, 1					; just one superball?
+	ld hl, $FFA9			; projectiles at A9, AA and AB?
 	ld de, wOAMBuffer + 1 ; objects 0, X position
 .superballLoop
 	ld a, [hli]
@@ -4633,11 +4633,11 @@ Call_1F2D:: ; 1F2D
 	push de
 	push bc
 	dec l				; hl = FFA9
-	ld a, [wSuperballTTL]
+	ld a, [wSuperballLifeSpan]
 	and a
 	jr z, .removeSuperball
 	dec a
-	ld [wSuperballTTL], a
+	ld [wSuperballLifeSpan], a
 	bit 0, [hl]			; going right?
 	jr z, .flyingLeft
 	ld a, [de]			; X pos

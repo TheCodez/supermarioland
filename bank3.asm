@@ -309,11 +309,12 @@ Call_490D:: ; 490D
 	ret
 
 ; new
-jr_003_4966:
+Call_03_4966::
+.jr_003_4966
     inc e                                         ; $4966: $1C
     ld a, [de]                                    ; $4967: $1A
     cp $0F                                        ; $4968: $FE $0F
-    jr nc, jr_003_49B5                            ; $496A: $30 $49
+    jr nc, Call_03_498B.jr_003_49B5                            ; $496A: $30 $49
 
     inc e                                         ; $496C: $1C
     dec a                                         ; $496D: $3D
@@ -321,27 +322,27 @@ jr_003_4966:
     dec e                                         ; $496F: $1D
     ld a, $0F                                     ; $4970: $3E $0F
     ld [de], a                                    ; $4972: $12
-    jr jr_003_49B5                                ; $4973: $18 $40
+    jr Call_03_498B.jr_003_49B5                                ; $4973: $18 $40
 
-jr_003_4975:
+.jr_003_4975:
     push af                                       ; $4975: $F5
     ld a, [de]                                    ; $4976: $1A
     and a                                         ; $4977: $A7
-    jr nz, jr_003_4988                            ; $4978: $20 $0E
+    jr nz, .jr_003_4988                            ; $4978: $20 $0E
 
     ld a, [wMarioMomentum]                        ; $497A: $FA $0C $C2
     cp $03                                        ; $497D: $FE $03
     ld a, $02                                     ; $497F: $3E $02
-    jr c, jr_003_4985                             ; $4981: $38 $02
+    jr c, .jr_003_4985                             ; $4981: $38 $02
 
     ld a, $04                                     ; $4983: $3E $04
 
-jr_003_4985:
+.jr_003_4985
     ld [wMarioRunning], a                         ; $4985: $EA $0E $C2
 
-jr_003_4988:
+.jr_003_4988
     pop af                                        ; $4988: $F1
-    jr jr_003_49AC                                ; $4989: $18 $21
+    jr Call_03_498B.jr_003_49AC                                ; $4989: $18 $21
 
 Call_03_498B::
     ldh a, [hGameState]                                  ; $498B: $F0 $B3
@@ -353,50 +354,49 @@ Call_03_498B::
     ld b, a                                       ; $4997: $47
     ldh a, [hJoyHeld]                                  ; $4998: $F0 $80
     bit 1, a                                      ; $499A: $CB $4F
-    jr nz, jr_003_4975                            ; $499C: $20 $D7
+    jr nz, Call_03_4966.jr_003_4975                            ; $499C: $20 $D7
 
     push af                                       ; $499E: $F5
     ld a, [wMarioRunning]                         ; $499F: $FA $0E $C2
     cp $04                                        ; $49A2: $FE $04
-    jr nz, jr_003_49AB                            ; $49A4: $20 $05
+    jr nz, .jr_003_49AB                            ; $49A4: $20 $05
 
     ld a, $02                                     ; $49A6: $3E $02
     ld [wMarioRunning], a                         ; $49A8: $EA $0E $C2
 
-jr_003_49AB:
+.jr_003_49AB
     pop af                                        ; $49AB: $F1
 
-jr_003_49AC:
+.jr_003_49AC
     bit 0, a                                      ; $49AC: $CB $47
-    jr nz, jr_003_49BF                            ; $49AE: $20 $0F
+    jr nz, .jr_003_49BF                            ; $49AE: $20 $0F
 
     ld a, [de]                                    ; $49B0: $1A
     cp $01                                        ; $49B1: $FE $01
-    jr z, jr_003_4966                             ; $49B3: $28 $B1
+    jr z, Call_03_4966.jr_003_4966                             ; $49B3: $28 $B1
 
-jr_003_49B5:
+.jr_003_49B5
     bit 7, b                                      ; $49B5: $CB $78
     jp nz, Jump_003_4A77                          ; $49B7: $C2 $77 $4A
 
-Jump_003_49BA:
+.Jump_003_49BA
     bit 1, b                                      ; $49BA: $CB $48
     jr nz, jr_003_49FD                            ; $49BC: $20 $3F
 
     ret                                           ; $49BE: $C9
 
-
-jr_003_49BF:
+.jr_003_49BF
     ld a, [de]                                    ; $49BF: $1A
     and a                                         ; $49C0: $A7
-    jr nz, jr_003_49B5                            ; $49C1: $20 $F2
+    jr nz, Call_03_498B.jr_003_49B5                            ; $49C1: $20 $F2
 
     ld hl, wMarioOnGround                         ; $49C3: $21 $0A $C2
     ld a, [hl]                                    ; $49C6: $7E
     and a                                         ; $49C7: $A7
-    jr z, jr_003_49B5                             ; $49C8: $28 $EB
+    jr z, Call_03_498B.jr_003_49B5                             ; $49C8: $28 $EB
 
     bit 0, b                                      ; $49CA: $CB $40
-    jr z, jr_003_49B5                             ; $49CC: $28 $E7
+    jr z, Call_03_498B.jr_003_49B5                             ; $49CC: $28 $E7
 
     ld [hl], $00                                  ; $49CE: $36 $00
     ld hl, wMarioAnimIndex                        ; $49D0: $21 $03 $C2
@@ -426,7 +426,7 @@ jr_003_49F2:
     ld a, $01                                     ; $49F7: $3E $01
     ld [de], a                                    ; $49F9: $12
     pop hl                                        ; $49FA: $E1
-    jr jr_003_49B5                                ; $49FB: $18 $B8
+    jr Call_03_498B.jr_003_49B5                                ; $49FB: $18 $B8
 
 jr_003_49FD:
     ld hl, wMarioMomentum                         ; $49FD: $21 $0C $C2
@@ -525,14 +525,14 @@ jr_003_4A66:
     ld a, $0C                                     ; $4A6C: $3E $0C
     ld [$C0AE], a                                 ; $4A6E: $EA $AE $C0
     ld a, $FF                                     ; $4A71: $3E $FF
-    ld [wSuperballTTL], a                         ; $4A73: $EA $A9 $C0
+    ld [wSuperballLifeSpan], a                         ; $4A73: $EA $A9 $C0
     ret                                           ; $4A76: $C9
 
 
 Jump_003_4A77:
     ld hl, wMarioMomentum                         ; $4A77: $21 $0C $C2
     ld [hl], $20                                  ; $4A7A: $36 $20
-    jp Jump_003_49BA                              ; $4A7C: $C3 $BA $49
+    jp Call_03_498B.Jump_003_49BA                              ; $4A7C: $C3 $BA $49
 
 
 Jump_003_4A7F:
@@ -699,8 +699,8 @@ Call_03_4B3C::
     cp $03                                        ; $4B3E: $FE $03
     ret nz                                        ; $4B40: $C0
 
-    ld hl, $C02D                                  ; $4B41: $21 $2D $C0
-    ldh a, [hScrollX]                                  ; $4B44: $F0 $A4
+    ld hl, wOAMBuffer + $2D                       ; $4B41: $21 $2D $C0
+    ldh a, [hScrollX]                             ; $4B44: $F0 $A4
     ld b, a                                       ; $4B46: $47
     ldh a, [$FFF2]                                  ; $4B47: $F0 $F2
     sub b                                         ; $4B49: $90

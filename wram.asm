@@ -30,7 +30,7 @@ db ; C0A7
 wContinueWorldAndLevel:: ; C0A8
 	db
 
-wSuperballTTL:: ; C0A9
+wSuperballLifeSpan:: ; C0A9
 	db
 
 ds $AD - $AA
