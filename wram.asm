@@ -33,12 +33,15 @@ wContinueWorldAndLevel:: ; C0A8
 wSuperballLifeSpan:: ; C0A9
 	db
 
-ds $AD - $AA
+ds $C0AD - $C0AA
 
 wGameOverTimerExpired:: ; C0AD
 	db
 
-ds $C0 - $AE
+ds 2
+
+wColumnBuffer:: ; C0B0
+	ds $10
 
 wTopScore:: ; C0C0
 	ds 3

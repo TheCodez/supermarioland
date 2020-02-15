@@ -65,7 +65,7 @@ Call_001_4FB2::
     inc a                                         ; $4FCD: $3C
     ldh [hScrollX], a                                  ; $4FCE: $E0 $A4
     ld b, 1                                     ; shift x by 1
-    call MoveMario.shiftSprites                 ; $4FD2: $CD $A4 $1E
+    call ShiftSprites                           ; $4FD2: $CD $A4 $1E
     call ScrollEnemiesByB                         ; $4FD5: $CD $9F $2C
     ld hl, wMarioPosX                             
     dec [hl]                                      ; move mario as well

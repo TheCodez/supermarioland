@@ -1,3 +1,11 @@
+enemy: MACRO
+    db \1, \2 * $10 + \3, \4
+ENDM
+
+enemies_end: MACRO
+    db $FF
+ENDM
+
 WAIT_FOR_HBLANK: MACRO
 .loop\@
 	ldh a, [rSTAT]

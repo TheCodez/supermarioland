@@ -280,7 +280,7 @@ HandleGameState::
 	dw HandleGameOver ; $3A ✓ Game over
 	dw PrepareTimesUp ; $3B ✓ Pre time up
 	dw HandleTimesUp ; $3C ✓ Time up
-	dw HandleGamePlay.return ; $3D  
+	dw Return ; $3D  
  
 ;322
 InitMenu::
@@ -311,7 +311,7 @@ InitMenu::
 	ld de, vChars1
 	ld bc, MenuTiles2End - MenuTiles2
 	call CopyData		; and more tiles
-	ld hl, $4862
+	ld hl, CommonTiles1 + $830 ;$4862
 	ldh a, [hWinCount]
 	cp a, 1
 	jr c, .noWins		; no win yet
@@ -645,7 +645,7 @@ HandleStartLevel::	; 576
 	call PrepareTiles
 	call ClearBGMap0
 	ld hl, vBGMap1
-	ld b, $5F
+	ld b, 95
 	ld a, " "
 .loop
 	ld [hli], a
@@ -669,7 +669,7 @@ HandleStartLevel::	; 576
 	ld a, $5B
 	ldh [$FFE9], a
 	call SetIsBackgroundAnimated		; superfluous? happens in HandlePrepareNextLevel.loadWorldTiles?
-	call InitLevel		; todo
+	call InitLevel
 	call DisplayCoins
 	call UpdateLives.displayLives
 	ldh a, [hWorldAndLevel]
@@ -793,7 +793,8 @@ HandleGamePlay::	; 627
 
     dec [hl]
     call Call_2113
-.return
+
+Return::
     ret
 
 ; 06BC
@@ -1020,7 +1021,7 @@ DrawInitialScreen::
 	ldh [$FFE9], a		; level index of some sort
 	ld b, SCRN_X_B			; an underground level is only 20 tiles wide, no scroll
 	ldh a, [hGameState]
-	cp a, $0A			; pipe going underground
+	cp a, STATE_WARP_TO_UNDERGROUND			; pipe going underground
 	jr z, .drawLoop
 	ldh a, [hLevelIndex]
 	cp a, $0C			; start menu doesn't scroll
@@ -1028,7 +1029,7 @@ DrawInitialScreen::
 	ld b, SCRN_X_B + 7	; load 27 tiles (20 visible, 7 preloaded)
 .drawLoop
 	push bc
-	call LoadNextColumn	; load a column of the level into C0B0
+	call LoadNextColumn	; load a column of the level into wColumnBuffer
 	call DrawColumn		; draw it onscreen
 	pop bc
 	dec b
@@ -1862,7 +1863,7 @@ HandlePrepareNextLevel:: ; D49
 	ret nz
 	ldh a, [hLevelIndex]
 	inc a
-	cp a, $0C			; 4*3 levels + credits?
+	cp a, 4 * 3			; 4*3 levels + credits?
 	jr nz, .incrementLevel
 	xor a
 .incrementLevel
@@ -1877,6 +1878,7 @@ HandlePrepareNextLevel:: ; D49
 	add a, $10 - 3			; Add one to the World after 3 Levels
 .notNextWorld
 	ldh [hWorldAndLevel], a
+
 .loadWorldTiles
 	and a, $F0			; upper nibble is the world
 	swap a
@@ -2049,13 +2051,13 @@ HandleGateOpening:: ; E5D
 	sub a, $20
 	ldh [$FFE0], a
 .waitHBlank
-	ldh a, [$FF41]
+	ldh a, [rSTAT]
 	and a, %11
 	jr nz, .waitHBlank
 	ld [hl], " "
 	ld a, $08
 	ldh [hTimer], a
-	ld a, $0B
+	ld a, MUSIC_BOSS
 	ld [wPlaySquareSFX], a		; sound effect
 	ret
 
@@ -2783,7 +2785,7 @@ HandleAirplaneMovingForward:: ; 12F1
 	ret
 
 .clearColumn
-	ld hl, $C0B0
+	ld hl, wColumnBuffer
 	ld b, $10
 	ld a, $2C
 .clearLoop
@@ -3099,7 +3101,8 @@ HandleTheEnd::
 	and a
 	ret z
 	call InitSound
-.resetToMenu
+
+ResetToMenu::
 	ld a, 2
 	ldh [hActiveRomBank], a
 	ld [MBC1RomBank], a
@@ -3389,12 +3392,12 @@ HandlePipeEntry:: ; 1765
 	add a, 8
 	ld [hli], a
 	inc l
-	ld [hl], $80
+	ld [hl], SPRITE_HIDDEN
 	ld a, STATE_GOING_DOWN_PIPE
-	ldh [hGameState], a		; go down pipe
+	ldh [hGameState], a			; go down pipe
 	ld a, [wInvincibilityTimer]
 	and a
-	jr nz, .skip			; Keep invincibility music going
+	jr nz, .skip				; Keep invincibility music going
 	ld a, MUSIC_UNDERGROUND
 	ld [wPlaySong], a			; underground music
 .skip
@@ -3420,9 +3423,9 @@ Call_17BC:: ; 17BC
 	call LookupTile
 	cp a, BLOCK_PIPE_OPENING		; standing on pipe
 	jr z, HandlePipeEntry
-	cp a, $E1				; boss switch
+	cp a, BLOCK_BOSS_SWITCH	; boss switch
 	jp z, HandleBossSwitch	; can this be a JR?
-	cp a, $60				; solid tiles
+	cp a, BLOCK_SOLID		; solid tiles
 	jr nc, .jmp_181E		; why is this a JP? Bug?
 	ld a, [wMarioRunning]	; 02 walking, 04 running
 	ld b, 4
@@ -3431,20 +3434,20 @@ Call_17BC:: ; 17BC
 	ld a, [wJumpStatus]			; jump status
 	and a
 	jr nz, .jmp_17F5
-	ld b, $08
+	ld b, 8
 .jmp_17F5
 	ldh a, [$FFAE]
 	add b
 	ldh [$FFAE], a
 	call LookupTile
-	cp a, $60
+	cp a, BLOCK_SOLID
 	jr nc, .jmp_181E
 .jmp_1801
 	ld hl, wJumpStatus
 	ld a, [hl]
-	cp a, 2
+	cp a, MARIO_DESCENDING
 	ret z					; return if descending
-	ld hl, wMarioPosY			; Y pos
+	ld hl, wMarioPosY		; Y pos
 	inc [hl]
 	inc [hl]
 	inc [hl]				; falling without having jumped
@@ -3467,9 +3470,9 @@ Call_17BC:: ; 17BC
 	ldh a, [hSuperStatus]
 	and a
 	jr z, .jmp_183C
-	cp a, $04				; i frames after hit
+	cp a, 4				; i frames after hit
 	jr z, .jmp_1842
-	cp a, $02
+	cp a, 2
 	jr nz, .jmp_1842
 	pop af
 	call InjureMario
@@ -3482,7 +3485,7 @@ Call_17BC:: ; 17BC
 
 .jmp_1842
 	pop af
-	cp a, $F4				; Coin
+	cp a, ITEM_COIN				; Coin
 	jr nz, Jmp_185D
 	push hl
 	pop de
@@ -3521,7 +3524,7 @@ Jmp_185D::
 	ret
 
 ; hidden block
-Jmp_187B:: ; 187B
+HitHiddenBlock:: ; 187B
 	ldh a, [$FFEE]
 	and a
 	ret nz
@@ -3534,7 +3537,7 @@ Jmp_187B:: ; 187B
 	and a					; if 0, don't make the hidden block appear
 	ret z					; it's from a different level screen/block
 
-Jmp_1888::
+HitBreakableBlock80::
 	ldh a, [$FFEE]
 	and a
 	ret nz
@@ -3545,7 +3548,7 @@ Jmp_1888::
 	ld a, [hl]				; wait, why again?
 	pop hl
 	and a
-	jp z, Call_198C.hitBreakableBlock
+	jp z, Call_198C.hitBreakableBlock82
 	cp a, $F0				; nothing, just a solid grey block
 	jr z, Jmp_18A4.jmp_18C0
 .jmp_189B
@@ -3560,7 +3563,7 @@ Jmp_18A4::
 	ret nz
 	ld a, SFX_COIN
 	ld [wPlaySquareSFX], a			; coin sound effect
-	ld a, [wMarioPosY]			; Y pos
+	ld a, [wMarioPosY]				; Y pos
 	sub a, 16
 	ldh [hFloatyY], a
 	ld a, $C0
@@ -3579,7 +3582,7 @@ Jmp_18A4::
 	ld a, $80
 	ld [wOAMBuffer + 4 * $B + 2], a
 	ld a, SFX_BUMP
-	ld [wPlaySquareSFX], a			; bump sound effect
+	ld [wPlaySquareSFX], a	; bump sound effect
 	push hl
 	pop de
 	ld hl, $FFEE
@@ -3619,15 +3622,15 @@ Jmp_18A4::
 	ldh a, [hBoundingBoxTop]
 	cp a, $F0
 	ret z
-	cp a, $28				; mushroom
+	cp a, POWERUP_MUSHROOM - 1	; mushroom
 	jr nz, .jmp_191F
 	ldh a, [hSuperStatus]
 	cp a, 2
 	ld a, $28
 	jr nz, .jmp_191F
-	ld a, $2D				; flower
+	ld a, POWERUP_FLOWER - 1	; flower
 .jmp_191F
-	call Call_254D				; make it come out?
+	call SpawnPowerup				; make it come out?
 	ret
 
 Jmp_1923::
@@ -3685,7 +3688,7 @@ hitMysteryBlock:: ; 1966
 	ld a, [hl]
 	pop hl
 	and a
-	jp nz, Jmp_1888.jmp_189B
+	jp nz, HitBreakableBlock80.jmp_189B
 	ld a, 5					; empty Mystery Block contain a single coin
 	ld [wPlaySquareSFX], a
 	ld a, $81
@@ -3711,37 +3714,37 @@ Call_198C::
 	add a, 2
 	ldh [$FFAE], a
 	call LookupTile
-	cp a, $5F				; Hidden Block
-	jp z, Jmp_187B
-	cp a, $60
+	cp a, BLOCK_HIDDEN				; Hidden Block
+	jp z, HitHiddenBlock
+	cp a, BLOCK_SOLID
 	jr nc, .jmp_19BF
 	ldh a, [$FFAE]
-	add a, -$4
+	add a, -4
 	ldh [$FFAE], a
 	call LookupTile
-	cp a, $5F
-	jp z, Jmp_187B
-	cp a, $60
-	ret c					; non solid block
+	cp a, BLOCK_HIDDEN
+	jp z, HitHiddenBlock
+	cp a, BLOCK_SOLID
+	ret c							; non solid block
 .jmp_19BF
 	call CheckForNonSolids			; platform-like blocks
-	and a					; zero if solid
+	and a							; zero if solid
 	ret z
-	cp a, $82				; breakable block
-	jr z, .hitBreakableBlock
-	cp a, $F4						; coin
-	jp z, .jmp_1A57
-	cp a, BLOCK_COIN				; mystery block
+	cp a, BLOCK_BREAKABLE_82		; breakable block
+	jr z, .hitBreakableBlock82
+	cp a, ITEM_COIN					; coin
+	jp z, .hitCoin
+	cp a, BLOCK_MYSTERY				; mystery block
 	jr z, hitMysteryBlock
-	cp a, BLOCK_BREAKABLE
-	jp z, Jmp_1888
+	cp a, BLOCK_BREAKABLE_80
+	jp z, HitBreakableBlock80
 	ld a, MARIO_DESCENDING
 	ld [wJumpStatus], a
 	ld a, SFX_BUMP
 	ld [wPlaySquareSFX], a			; bump
 	ret
 
-.hitBreakableBlock
+.hitBreakableBlock82
 	push hl
 	ld a, h
 	add a, $30
@@ -3812,7 +3815,7 @@ Call_198C::
 	ld [wJumpStatus], a
 	ret
 
-.jmp_1A57
+.hitCoin
 	push hl
 	pop de
 	ld hl, $FFEE
@@ -3848,7 +3851,7 @@ CheckForNonSolids:: ; 1A6B
 	ld d, [hl]				; load the address in DE
 .nextBlock
 	ld a, [de]
-	cp a, $FD
+	cp a, $FD              ; list ending
 	jr z, .endOfList
 	cp b
 	jr z, .match
@@ -3923,7 +3926,7 @@ Call_1AAD:: ; 1AAD
 	jr z, .checkNextTile
 	cp a, $60
 	jr c, .checkNextTile
-	cp a, $F4
+	cp a, ITEM_COIN
 	jr z, .touchedCoin
 	cp a, $77
 	jr z, .touchedSidewaysPipe
@@ -4045,9 +4048,9 @@ BlockCollision:: ; 1B86
 	inc l				; hl ← FFF0
 	ld e, [hl]			; de ← place in VRAM where the coin was?
 	ld a, [wOAMBuffer + $2E]		; coin block OAM sprite 3rd byte?
-	cp a, $82				; normal breakable block?
+	cp a, BLOCK_BREAKABLE_82				; normal breakable block?
 	jr z, .placeBlockBackInBG
-	cp a, BLOCK_COIN			; coin block
+	cp a, BLOCK_MYSTERY			; coin block
 	call z, AddCoin
 	ld a, BLOCK_USED			; dark block (used coinblock)
 .placeBlockBackInBG
@@ -4070,9 +4073,9 @@ BlockCollision:: ; 1B86
 	ld hl, -32			; check one tile higher for a coin
 	add hl, de
 	ld a, [hl]
-	cp a, $F4			; coin "$"
+	cp a, ITEM_COIN			; coin "$"
 	ret nz
-	ld [hl], " "		; remove it
+	ld [hl], " "			; remove it
 	ld a, SFX_COIN
 	ld [wPlaySquareSFX], a		; todo sound effect
 	ld a, h
@@ -4241,7 +4244,7 @@ GameOverTextEnd:
 HandleGameOver:: ; 1CE8
 	ld a, [wGameOverTimerExpired]
 	and a
-	call nz, HandleTheEnd.resetToMenu
+	call nz, ResetToMenu
 	ret
 
 ; prepare time up
@@ -4422,7 +4425,7 @@ MoveMario::
 	ld hl, hScrollX
 	add [hl]			; scroll screen if Mario is in the middle
 	ld [hl], a
-	call .shiftSprites		; shift sprites
+	call ShiftSprites		; shift sprites
 	call ScrollEnemiesByB
 	ld hl, wOAMBuffer + 1	; projectile X positions
 	ld de, $0004			; 4 bytes per object
@@ -4519,7 +4522,7 @@ MoveMario::
 	ret
 
 ; subtract B from X coord of objects $0C to $14?
-.shiftSprites
+ShiftSprites::
 	ld hl, wOAMBuffer + $C * 4 + 1
 	ld de, $0004
 	ld c, 8
@@ -4744,7 +4747,7 @@ FindNeighboringTile::	; gets called in autoscroll from 514F?
 	push de
 	push hl
 	call LookupTile
-	cp a, $F4			; Coin sprite
+	cp a, ITEM_COIN			; Coin sprite
 	jr nz, .checkForBreakableBlock
 	ldh a, [hGameState]
 	cp a, $0D			; In autoscroll levels, can't collect coins with projectiles
@@ -4763,9 +4766,9 @@ FindNeighboringTile::	; gets called in autoscroll from 514F?
 	ld a, SFX_COIN
 	ld [wPlaySquareSFX], a		; coin sound effect
 .checkForBreakableBlock
-	cp a, $82			; breakable block
+	cp a, BLOCK_BREAKABLE_82			; breakable block
 	call z, Call_200A.breakBlockInAutoscroll
-	cp a, $80			; breakable block
+	cp a, BLOCK_BREAKABLE_80			; breakable block
 	call z, Call_200A.breakBlockInAutoscroll
 .checkForSolidTile
 	pop hl
@@ -4905,7 +4908,7 @@ Call_200A::
 	ld a, [de]
 	and a
 	jr z, .jmp_20C1
-	call Call_254D			; spawn powerup
+	call SpawnPowerup			; spawn powerup
 .jmp_20C1
 	ld hl, $C210			; non player entity?
 	ld de, $0010
@@ -5016,9 +5019,9 @@ LoadColumns:: ; 2198
 
 ; decompress a column from the level
 LoadNextColumn::	; 21B1
-	ld b, $10			; the screen without hud is exactly 16 tiles high
-	ld hl, $C0B0		; tilemap column cache todo
-	ld a, " "			; blank tile
+	ld b, $10					; the screen without hud is exactly 16 tiles high
+	ld hl, wColumnBuffer		; tilemap column cache todo
+	ld a, " "					; blank tile
 .clearLoop
 	ld [hli], a
 	dec b
@@ -5061,7 +5064,7 @@ LoadNextColumn::	; 21B1
 	ld a, [hli]
 	cp a, $FE
 	jr z, .endOfColumn	; $FE = end of column
-	ld de, $C0B0
+	ld de, wColumnBuffer
 	ld b, a
 	and a, $F0			; high nibble = offset into column
 	swap a
@@ -5084,7 +5087,7 @@ LoadNextColumn::	; 21B1
 	jr .incrementRow
 
 .notPipe
-	cp a, BLOCK_BREAKABLE		; breakable block?
+	cp a, BLOCK_BREAKABLE_80		; breakable block?
 	jr nz, .notBreakableBlock
 	call CheckBlockForItem
 	jr .incrementRow
@@ -5096,7 +5099,7 @@ LoadNextColumn::	; 21B1
 	jr .incrementRow
 
 .notHiddenBlock
-	cp a, BLOCK_COIN		; coin block
+	cp a, BLOCK_MYSTERY		; coin block
 	call z, CheckBlockForItem
 .incrementRow
 	inc e
@@ -5153,8 +5156,8 @@ DrawColumn:: ; 2258
 .noWrapAround
 	ldh [$FFE9], a
 	ld h, HIGH(vBGMap0)
-	ld de, $C0B0		; the next column is preloaded here by something
-	ld b, $10			; 16 tiles high
+	ld de, wColumnBuffer		; the next column is preloaded here by something
+	ld b, 16					; 16 tiles high
 .nextRow
 	push hl
 	ld a, h
@@ -5163,14 +5166,14 @@ DrawColumn:: ; 2258
 	ld [hl], 0
 	pop hl
 	ld a, [de]
-	ld [hl], a			; set the tile in the tilemap
+	ld [hl], a					; set the tile in the tilemap
 	cp a, BLOCK_PIPE_OPENING	; pipe opening
 	jr nz, .notPipe
 	call Call_22FD
 	jr .incrementRow
 
 .notPipe
-	cp a, BLOCK_BREAKABLE	; breakable block
+	cp a, BLOCK_BREAKABLE_80	; breakable block
 	jr nz, .notBreakableBlock
 	call StoreBlockInOverlay
 	jr .incrementRow
@@ -5182,7 +5185,7 @@ DrawColumn:: ; 2258
 	jr .incrementRow
 
 .notHiddenBlock
-	cp a, BLOCK_COIN	; coin block
+	cp a, BLOCK_MYSTERY	; coin block
 	call z, StoreBlockInOverlay
 .incrementRow
 	inc e
@@ -5633,7 +5636,7 @@ Jmp_250B:
 	call CopyBufferToEnemySlot
 	ret
 
-Call_254D:: ; 254D
+SpawnPowerup:: ; 254D
 	ld hl, $D190		; powerup slot
 	ld [hl], a
 	ldh a, [$FFC2]		; Y pos
@@ -6684,7 +6687,7 @@ Call_2B5D:: ; 2B5D
 	ldh a, [$FFC2]
 	ldh [$FFAD], a
 	call LookupTile
-	cp a, $5F
+	cp a, BLOCK_HIDDEN
 	ret c
 	cp a, $F0
 	ccf
@@ -6701,7 +6704,7 @@ Call_2B84:: ; 2B84
 	ldh a, [$FFC2]
 	ldh [$FFAD], a
 	call LookupTile
-	cp a, $5F
+	cp a, BLOCK_HIDDEN
 	ret c
 	cp a, $F0
 	ccf
@@ -6724,7 +6727,7 @@ Call_2B9A:: ; 2B9A
 	ldh a, [$FFC2]
 	ldh [$FFAD], a
 	call LookupTile
-	cp a, $5F
+	cp a, BLOCK_HIDDEN
 	ret c
 	cp a, $F0
 	ccf
@@ -6750,10 +6753,10 @@ CheckCollisionWithLowerTile:: ; 2BBB
 	ldh [$FFAE], a
 .jmp_2BD4
 	ldh a, [$FFC2]
-	add a, $08		; one tile lower
+	add a, 8		; one tile lower
 	ldh [$FFAD], a
 	Call LookupTile
-	cp a, $5F
+	cp a, BLOCK_HIDDEN
 	ret c
 	cp a, $F0
 	ccf
@@ -6766,13 +6769,13 @@ Call_2BE4:: ; 2BE4
 	ld c, a
 	ldh a, [hScrollX]
 	add c
-	add a, $03
+	add a, 3
 	ldh [$FFAE], a
 	ldh a, [$FFC2]
-	add a, $08
+	add a, 8
 	ldh [$FFAD], a
 	call LookupTile
-	cp a, $5F
+	cp a, BLOCK_HIDDEN
 	ret c
 	cp a, $F0
 	ccf
@@ -6798,7 +6801,7 @@ Call_2BFE:: ; 2BFE
 	add a, 8
 	ldh [$FFAD], a
 	call LookupTile
-	cp a, $5F
+	cp a, BLOCK_HIDDEN
 	ret c
 	cp a, $F0
 	ccf
@@ -6833,7 +6836,7 @@ Call_2C21:: ; 2C21
 	sub c
 	ldh [$FFAD], a
 	call LookupTile
-	cp a, $5F
+	cp a, BLOCK_HIDDEN
 	ret c
 	cp a, $F0
 	ccf
@@ -6857,7 +6860,7 @@ Call_2C52:: ; 2C52
 	sub c
 	ldh [$FFAD], a
 	Call LookupTile
-	cp a, $5F
+	cp a, BLOCK_HIDDEN
 	ret c
 	cp a, $F0
 	ccf
@@ -6887,7 +6890,7 @@ Call_2C74:: ; 2C74
 	sub c
 	ldh [$FFAD], a
 	Call LookupTile
-	cp a, $5F
+	cp a, BLOCK_HIDDEN
 	ret c
 	cp a, $F0
 	ccf
@@ -7795,13 +7798,13 @@ _LookupTile:: ; 3EE6
 	ld de, $0000
 	ld e, a
 	ld hl, vBGMap0		; Start of background tile map
-	ld b, SCRN_VX_B			; todo screen width
+	ld b, SCRN_VX_B		; screen width
 .loopY
 	add hl, de
 	dec b				; would make more sense to loop on A, or do some shifts
 	jr nz, .loopY		; HL ← 9800 + A * screenWidth
 	ldh a, [$FFAE]
-	sub a, $08			; TODO why? Something to do with object coordinates
+	sub a, 8			; TODO why? Something to do with object coordinates
 	srl a				; being offset?
 	srl a
 	srl a
@@ -7853,7 +7856,7 @@ DisplayScore:: ; 3F39
 	ld a, [$C0E2]
 	and a
 	ret nz
-	ldh a, [$FFEA]
+	ldh a, [$FFEA]   ; delay when row is drawing?
 	cp a, 2
 	ret z
 	ld de, wScore + 2	; Start with the ten and hundred thousands
